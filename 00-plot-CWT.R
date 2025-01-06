@@ -4,6 +4,24 @@ dat <- readr::read_csv("data/RBT_data_wfisheries.csv")
 #problems(dat)
 dat[c(1013, 2273), ]
 
+# CWT releases
+rel <- dat %>%
+  summarise(CWTMark1Count = unique(CWTMark1Count), .by = c(TagCode, BroodYear)) %>%
+  arrange(BroodYear, TagCode)
+
+#rel2 <- readr::read_csv("data/releases_indicator_RBT.csv") %>%
+#  select(BroodYear, TagCode, CWTMark1Count) %>%
+#  arrange(BroodYear, TagCode)
+
+g <- rel %>%
+  summarise(rel = sum(CWTMark1Count), .by = BroodYear) %>%
+  ggplot(aes(BroodYear, rel)) +
+  geom_point() +
+  geom_line() +
+  expand_limits(y = 0) +
+  labs(x = "Brood Year", y = "CWT releases")
+ggsave("figures/rel.png", g, height = 3, width = 4)
+
 
 # Preterminal = US and Canada
 # Terminal = Canada
