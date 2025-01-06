@@ -4,6 +4,7 @@ dat <- readr::read_csv("data/RBT_data_wfisheries.csv")
 #problems(dat)
 dat[c(1013, 2273), ]
 
+
 # Preterminal = US and Canada
 # Terminal = Canada
 table(dat$fishery_type, dat$country)
@@ -17,7 +18,7 @@ dat$ExpansionFactor %>% as.numeric() %>% is.na() %>% mean()
 # Escapement by run year
 esc_run <- dat %>%
   filter(fishery_type == "escapement") %>%
-  summarise(n = n(), .by = c(RunYear, Age))
+  summarise(n = sum(AdjustedEstimatedNumber), .by = c(RunYear, Age))
 
 #g <- esc_run %>%
 #  ggplot(aes(Age, n)) +
@@ -46,7 +47,7 @@ ggsave("figures/esc_total.png", g, width = 4, height = 3)
 # Escapement by brood year
 esc_brood <- dat %>%
   filter(fishery_type == "escapement") %>%
-  summarise(n = n(), .by = c(BroodYear, Age))
+  summarise(n = sum(AdjustedEstimatedNumber), .by = c(BroodYear, Age))
 
 g <- esc_brood %>%
   ggplot(aes(BroodYear, n)) +
@@ -87,7 +88,7 @@ ggsave("figures/pt_fishery.png", g, width = 6, height = 5.5)
 # Terminal catch
 term <- dat %>%
   filter(fishery_type == "terminal") %>%
-  summarise(n = n(), .by = c(RunYear, Age))
+  summarise(n = sum(AdjustedEstimatedNumber), .by = c(RunYear, Age))
 
 g <- term %>%
   ggplot(aes(RunYear, n)) +
