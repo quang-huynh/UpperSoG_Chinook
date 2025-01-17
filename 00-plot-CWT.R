@@ -89,7 +89,7 @@ g <- esc_brood %>%
 # Preterminal catch - by run year and country
 pt_country <- dat %>%
   filter(fishery_type == "pre-terminal") %>%
-  summarise(n = n(), .by = c(RunYear, Age, country))
+  summarise(n = sum(AdjustedEstimatedNumber), .by = c(RunYear, Age, country))
 
 g <- pt_country %>%
   ggplot(aes(RunYear, n)) +
