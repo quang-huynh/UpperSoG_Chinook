@@ -9,53 +9,91 @@ esc <- readr::read_csv("data/R-OUT_infilled_indicators_escapement_timeseries.csv
   filter(river == "sarita_river") %>%
   arrange(year)
 
+# Sarita hatchery releases and broodtake
+#rel <- readxl::read_excel(
+#  "data/Sarita/2025-02-04 Sarita Chinook Releases and Removals.xlsx",
+#  sheet = "Sarita CN Releases",
+#  range = "A10:E50"
+#)
+rel <- readr::read_csv("data/Sarita/sarita_rel.csv")
+rel[is.na(rel)] <- 0
+rel <- rel %>%
+  rename(Year = `Row Labels`) %>%
+  mutate(Total = `Fed Fry` + `Seapen 0+` + `Smolt 0+`, `Smolt 1+`)
+
+#brood <- readxl::read_excel(
+#  "data/Sarita/2025-02-04 Sarita Chinook Releases and Removals.xlsx",
+#  sheet = "Broodstock Used",
+#  range = "A5:D39"
+#) %>%
+#  rename(Year = `Row Labels`)
+
+brood <- readr::read_csv("data/Sarita/sarita_brood.csv") %>%
+  rename(Year = `Row Labels`)
+brood$Broodtake <- rowSums(brood[, -1], na.rm = TRUE)
+
+#g <- sarita_rel %>% reshape2::melt(id.vars = "Year") %>%
+#  ggplot(aes(Year, value, colour = variable)) +
+#  geom_line() +
+#  geom_point()
+
 # CWT data (1973 - 2021)
-dat <- readr::read_csv("data/RBT_data_wfisheries.csv")
+cwt_dat <- readr::read_csv("data/RBT_data_wfisheries.csv")
 #problems(dat)
-dat[c(1013, 2273), ]
+cwt_dat[c(1013, 2273), ]
 
 
 
 
 #### Process data ----
 
-# Full matrix of ages (1-6) and years (1979 - 2021)
+# Full matrix of ages (1-5) and years (1979 - 2021)
 full_matrix <- expand.grid(
   BroodYear = 1979:2021,
-  Age = 1:6
+  Age = 1:5
 ) %>%
   as.data.frame()
 full_year <- data.frame(BroodYear = 1979:2021)
 
-# Escapement
-esc_sarita <- filter(esc, year %in% full_year$BroodYear)
+# Escapement  + broodtake
+esc_sarita <- filter(esc, year %in% full_year$BroodYear) %>%
+  left_join(brood %>% select(Year, Broodtake), by = c("year" = "Year")) %>%
+  mutate(Broodtake = ifelse(is.na(Broodtake), 0, Broodtake)) %>%
+  rename(spawners = escapement) %>%
+  mutate(escapement = spawners + Broodtake,
+         p_spawn = 1 - Broodtake/escapement)
+
+# Sarita releases
+rel_sarita <- left_join(full_year, rel, by = c("BroodYear" = "Year"))
+rel_sarita$Total[is.na(rel_sarita$Total)] <- 0
+
 
 # CWT releases by tag code
-rel <- dat %>%
+cwt_rel <- cwt_dat %>%
   summarise(CWTMark1Count = unique(CWTMark1Count), .by = c(TagCode, BroodYear)) %>%
   arrange(BroodYear, TagCode)
 
 # Annual CWT releases
-rel_annual <- rel %>%
+cwt_rel_annual <- cwt_rel %>%
   summarise(rel = sum(CWTMark1Count), .by = BroodYear) %>%
   right_join(full_year)
 
 # CWT escapement by brood year, age
-cwt_esc <- dat %>%
+cwt_esc <- cwt_dat %>%
   filter(fishery_type == "escapement") %>%
   summarise(n = sum(AdjustedEstimatedNumber), .by = c(BroodYear, Age)) %>%
   right_join(full_matrix, by = c("BroodYear", "Age")) %>%
   reshape2::acast(list("BroodYear", "Age"), value.var = "n", fill = 0)
 
 # Preterminal CWT
-cwt_pt <- dat %>%
+cwt_pt <- cwt_dat %>%
   filter(fishery_type == "pre-terminal", Age < 7) %>%
   summarise(n = sum(AdjustedEstimatedNumber), .by = c(BroodYear, Age)) %>%
   right_join(full_matrix, by = c("BroodYear", "Age")) %>%
   reshape2::acast(list("BroodYear", "Age"), value.var = "n", fill = 0)
 
 # Terminal CWT
-cwt_t <- dat %>%
+cwt_t <- cwt_dat %>%
   filter(fishery_type == "terminal") %>%
   summarise(n = sum(AdjustedEstimatedNumber), .by = c(BroodYear, Age)) %>%
   right_join(full_matrix, by = c("BroodYear", "Age")) %>%
@@ -65,35 +103,42 @@ cwt_t <- dat %>%
 
 # Data object for model
 Ldyr <- nrow(cwt_esc)
-Nages <- 6
+Nages <- 5
 
-mat <- c(0, 0.1, 0.4, 0.95, 0.99, 1)
-vulPT <- c(0, 0.075, 0.9, 0.9, 0.9, 1)
+mat <- c(0, 0.1, 0.4, 0.95, 1)
+vulPT <- c(0, 0.075, 0.9, 0.9, 1)
 vulT <- vulPT
+#M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1))
+#M <- c(3, rep(0.3, 4)) # Cowichan
+M <- c(3, rep(0.15, 4)) # Sarita
+fec_Cowichan <- c(0, 87, 1153, 2780, 2700)  # Cowichan
+fec_Sarita <- rep(3900, Nages)
 d <- list(
   Nages = Nages,
   Ldyr = Ldyr,
   lht = 1,
-  hatchsurv = 1,
-  gamma = 1,
-  ssum = 0.5,
+  hatchsurv = 0.9,
+  gamma = 0.8,
+  ssum = 0.4,
   finitPT = 0.8,
   finitT = 0.8,
-  bmatt = c(0, 0.1, 0.4, 0.95, 0.99, 1),
-  fec = c(0, 87, 1153, 2780, 2700, 3000),
+  bmatt = mat,
+  fec = fec_Sarita,
   bvulPT = vulPT,
   bvulT = vulT,
-  mobase = c(3, rep(0.3, 5)),
-  cwtrelease = rel_annual$rel,
+  #mobase = M_CTC,
+  mobase = M,
+  cwtrelease = cwt_rel_annual$rel,
   cwtesc = round(cwt_esc),
   cwtcatPT = round(cwt_pt),
   cwtcatT = round(cwt_t),
   RelRegFPT = rep(1, Ldyr),
   RelRegFT = rep(1, Ldyr),
-  obsescape = esc_sarita$escapement,
-  propwildspawn = rep(1, Ldyr),
-  hatchrelease = rep(0, Ldyr + 1),
+  obsescape = esc_sarita$spawners,
+  propwildspawn = round(esc_sarita$p_spawn, 2),
+  hatchrelease = c(rel_sarita$Total, rel_sarita$Total[length(rel_sarita$Total)]),
   cwtExp = 1
+  #covariate = matrix(1, d$Ldyr, 1)
 )
 
 
@@ -104,7 +149,7 @@ map <- list()
 #map$sd_matt <- factor(rep(NA, Nages-2)) # Not estimating year-specific maturity
 #map$logit_matt <- factor(rep(NA, Ldyr * (Nages - 2)))
 
-# Fit additional age-1 M
+# Fix additional age-1 M
 #map$moadd <- factor(NA)
 
 # Fix age-1 density-independent M deviates
@@ -118,14 +163,21 @@ map$wto_sd <- factor(NA)
 # Fix observation error of Sarita escapement (needed, otherwise model can't separate process from obs error)
 map$lnE_sd <- factor(NA)
 
-start <- list(log_so = log(5 * max(d$obsescape)))
-
+start <- list(log_so = log(3 * max(d$obsescape)))
 
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
-report <- fit$obj$report()
 
 samp <- sample_CM(fit, chains = 2, cores = 2)
-#saveRDS(samp, file = "CM/Sarita_RBT_CM_01.17.25.rds")
+saveRDS(samp, file = "CM/Sarita_RBT_CM_02.04.25.rds")
+#samp <- readRDS("CM/Sarita_RBT_CM_02.04.25.rds")
 salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_Ex", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
 
 shinystan::launch_shinystan(samp)
+
+# Look at gradients
+data.frame(
+  par = fit$opt$par %>% names(),
+  gr = fit$obj$gr()[1, ]
+) %>%
+  filter(abs(gr) > 0.1)
+
