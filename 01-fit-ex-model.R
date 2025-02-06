@@ -42,9 +42,6 @@ cwt_dat <- readr::read_csv("data/RBT_data_wfisheries.csv")
 #problems(dat)
 cwt_dat[c(1013, 2273), ]
 
-
-
-
 #### Process data ----
 
 # Full matrix of ages (1-5) and years (1979 - 2021)
@@ -110,7 +107,9 @@ vulPT <- c(0, 0.075, 0.9, 0.9, 1)
 vulT <- vulPT
 #M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1))
 #M <- c(3, rep(0.3, 4)) # Cowichan
-M <- c(3, rep(0.15, 4)) # Sarita
+
+surv2 <- 0.7 # -log(surv2) = 0.5667
+M <- c(3, rep(0.35, 4)) # Sarita
 fec_Cowichan <- c(0, 87, 1153, 2780, 2700)  # Cowichan
 fec_Sarita <- rep(3900, Nages)
 d <- list(
@@ -171,6 +170,17 @@ samp <- sample_CM(fit, chains = 2, cores = 2)
 saveRDS(samp, file = "CM/Sarita_RBT_CM_02.04.25.rds")
 #samp <- readRDS("CM/Sarita_RBT_CM_02.04.25.rds")
 salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_Ex", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
+
+
+# Another fit with hatchery survival = 0.5 (outmigration)
+d$hatchsurv <- 0.5
+fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
+
+samp <- sample_CM(fit, chains = 2, cores = 2)
+saveRDS(samp, file = "CM/Sarita_RBT_CM_02.04.25_hatchsurv05.rds")
+#samp <- readRDS("CM/Sarita_RBT_CM_02.04.25.rds")
+salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_Ex_hatchsurv05", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
+
 
 shinystan::launch_shinystan(samp)
 
