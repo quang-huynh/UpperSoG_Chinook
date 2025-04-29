@@ -1,6 +1,6 @@
 
 library(tidyverse)
-library(salmonMSE) # Need January 17, 2025 version
+library(salmonMSE)
 
 
 #### Data ----
@@ -37,20 +37,22 @@ brood$Broodtake <- rowSums(brood[, -1], na.rm = TRUE)
 #  geom_line() +
 #  geom_point()
 
-# CWT data (1973 - 2021)
+# CWT data
+# broodyear 1973 - 2021
+# runyear 1975-2023
 cwt_dat <- readr::read_csv("data/RBT_data_wfisheries.csv")
 #problems(dat)
 cwt_dat[c(1013, 2273), ]
 
 #### Process data ----
 
-# Full matrix of ages (1-5) and years (1979 - 2021)
+# Full matrix of ages (1-5) and years (1979 - 2023)
 full_matrix <- expand.grid(
-  BroodYear = 1979:2021,
+  BroodYear = 1979:2023,
   Age = 1:5
 ) %>%
   as.data.frame()
-full_year <- data.frame(BroodYear = 1979:2021)
+full_year <- data.frame(BroodYear = 1979:2023)
 
 # Escapement  + broodtake
 esc_sarita <- filter(esc, year %in% full_year$BroodYear) %>%
@@ -73,7 +75,8 @@ cwt_rel <- cwt_dat %>%
 # Annual CWT releases
 cwt_rel_annual <- cwt_rel %>%
   summarise(rel = sum(CWTMark1Count), .by = BroodYear) %>%
-  right_join(full_year)
+  right_join(full_year) %>%
+  mutate(rel = ifelse(is.na(rel), 0, rel))
 
 # CWT escapement by brood year, age
 cwt_esc <- cwt_dat %>%
@@ -81,6 +84,25 @@ cwt_esc <- cwt_dat %>%
   summarise(n = sum(AdjustedEstimatedNumber), .by = c(BroodYear, Age)) %>%
   right_join(full_matrix, by = c("BroodYear", "Age")) %>%
   reshape2::acast(list("BroodYear", "Age"), value.var = "n", fill = 0)
+
+# Plot CWT escapement
+g <- cwt_dat %>%
+  filter(fishery_type == "escapement") %>%
+  summarise(n = sum(AdjustedEstimatedNumber), .by = c(BroodYear, Age)) %>%
+  right_join(full_matrix, by = c("BroodYear", "Age")) %>%
+  arrange(Age, BroodYear) %>%
+  mutate(p = n/sum(n, na.rm = TRUE), .by = BroodYear) %>%
+  filter(!is.na(p)) %>%
+  ggplot(aes(BroodYear, p, fill = factor(Age, levels = 5:2))) +
+  geom_col(width = 0.75, colour = NA) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(x = "Brood Year", y = "Proportion", fill = "Age", title = "CWT escapement") +
+  coord_cartesian(expand = FALSE)
+ggsave("figures/CWT_esc_prop.png", g, height = 4, width = 6)
+
+g2 <- g +
+  coord_cartesian(expand = FALSE, xlim = c(2013.5, 2020.5))
+ggsave("figures/CWT_esc_prop2.png", g2, height = 4, width = 6)
 
 # Preterminal CWT
 cwt_pt <- cwt_dat %>%
@@ -105,13 +127,16 @@ Nages <- 5
 mat <- c(0, 0.1, 0.4, 0.95, 1)
 vulPT <- c(0, 0.075, 0.9, 0.9, 1)
 vulT <- vulPT
-#M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1))
-#M <- c(3, rep(0.3, 4)) # Cowichan
 
-surv2 <- 0.7 # -log(surv2) = 0.5667
-M <- c(3, rep(0.35, 4)) # Sarita
-fec_Cowichan <- c(0, 87, 1153, 2780, 2700)  # Cowichan
-fec_Sarita <- rep(3900, Nages)
+
+M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1))
+#M_Cowichan <- c(3, rep(0.3, 4))
+
+surv2 <- 0.7 # -log(surv2) = 0.356
+M <- c(3, rep(0.35, 4)) # Sarita, M = 0.35 is approximately 0.70 survival
+
+#fec_Cowichan <- c(0, 87, 1153, 2780, 2700)
+fec_Sarita <- c(0, 3000, 3000, 3600, 4600)
 d <- list(
   Nages = Nages,
   Ldyr = Ldyr,
@@ -152,8 +177,8 @@ map <- list()
 #map$moadd <- factor(NA)
 
 # Fix age-1 density-independent M deviates
-map$wto <- factor(rep(NA, Ldyr))
-map$wto_sd <- factor(NA)
+#map$wto <- factor(rep(NA, Ldyr))
+#map$wto_sd <- factor(NA)
 
 # Fix density dependent egg-smolt M deviates
 #map$wt <- factor(rep(NA, Ldyr))
@@ -164,30 +189,19 @@ map$lnE_sd <- factor(NA)
 
 start <- list(log_so = log(3 * max(d$obsescape)))
 
+# Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
+samp <- sample_CM(fit, chains = 4, cores = 4)
+saveRDS(samp, file = "CM/Sarita_RBT_CM_04.28.25.rds")
+samp <- readRDS("CM/Sarita_RBT_CM_04.28.25.rds")
+salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_04.28", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
 
-samp <- sample_CM(fit, chains = 2, cores = 2)
-saveRDS(samp, file = "CM/Sarita_RBT_CM_02.04.25.rds")
-#samp <- readRDS("CM/Sarita_RBT_CM_02.04.25.rds")
-salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_Ex", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
-
-
-# Another fit with hatchery survival = 0.5 (outmigration)
-d$hatchsurv <- 0.5
+# Fit with M_CTC
+d$mobase <- M_CTC
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
+samp <- sample_CM(fit, chains = 4, cores = 4)
+saveRDS(samp, file = "CM/Sarita_RBT_CM_04.28.25_MCTC.rds")
+samp <- readRDS("CM/Sarita_RBT_CM_04.28.25_MCTC.rds")
+salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_04.28_MCTC", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
 
-samp <- sample_CM(fit, chains = 2, cores = 2)
-saveRDS(samp, file = "CM/Sarita_RBT_CM_02.04.25_hatchsurv05.rds")
-#samp <- readRDS("CM/Sarita_RBT_CM_02.04.25.rds")
-salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_Ex_hatchsurv05", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
-
-
-shinystan::launch_shinystan(samp)
-
-# Look at gradients
-data.frame(
-  par = fit$opt$par %>% names(),
-  gr = fit$obj$gr()[1, ]
-) %>%
-  filter(abs(gr) > 0.1)
 
