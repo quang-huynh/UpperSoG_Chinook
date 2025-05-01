@@ -136,7 +136,7 @@ surv2 <- 0.7 # -log(surv2) = 0.356
 M <- c(3, rep(0.35, 4)) # Sarita, M = 0.35 is approximately 0.70 survival
 
 #fec_Cowichan <- c(0, 87, 1153, 2780, 2700)
-fec_Sarita <- c(0, 3000, 3000, 3600, 4600)
+fec_Sarita <- c(0, 3000, 3000, 3600, 4600) # See Res Doc
 d <- list(
   Nages = Nages,
   Ldyr = Ldyr,
@@ -204,4 +204,4 @@ saveRDS(samp, file = "CM/Sarita_RBT_CM_04.28.25_MCTC.rds")
 samp <- readRDS("CM/Sarita_RBT_CM_04.28.25_MCTC.rds")
 salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_04.28_MCTC", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
 
-
+#shinystan::launch_shinystan(samp)
