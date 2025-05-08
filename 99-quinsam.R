@@ -26,11 +26,11 @@ table(rec$is_catch, rec$is_esc)
 filter(rec, is_catch & is_esc) %>% View()
 
 # Catch area names
-cnames <- colnames(rec)
-data.frame(
-  Name = cnames[grepl("1|2|3", cnames)]
-) %>%
-  readr::write_csv(file = "Quinsam_fisheries.csv")
+#cnames <- colnames(rec)
+#data.frame(
+#  Name = cnames[grepl("1|2|3", cnames)]
+#) %>%
+#  readr::write_csv(file = "data/Quinsam/Quinsam_fisheries.csv")
 
 
 # CWT recoveries
@@ -40,15 +40,17 @@ cwt <- summarise(rec,
                  .by = c(Age, BROOD_YEAR))
 
 g <- ggplot(cwt, aes(BROOD_YEAR, n_catch)) +
-  facet_wrap(vars(Age)) +
+  facet_wrap(vars(Age), scales = "free_y") +
   geom_line() +
-  geom_point()
+  geom_point() +
+  expand_limits(y = 0)
 g
 
 g <- ggplot(cwt, aes(BROOD_YEAR, n_esc)) +
-  facet_wrap(vars(Age)) +
+  facet_wrap(vars(Age), scales = "free_y") +
   geom_line() +
-  geom_point()
+  geom_point() +
+  expand_limits(y = 0)
 g
 
 # CWT by release strategy
@@ -58,15 +60,17 @@ cwt_rs <- summarise(rec,
                     .by = c(Age, BROOD_YEAR, RELEASE_STAGE_NAME))
 
 g <- ggplot(cwt_rs, aes(BROOD_YEAR, n_catch, colour = RELEASE_STAGE_NAME)) +
-  facet_wrap(vars(Age)) +
+  facet_wrap(vars(Age), scales = "free_y") +
   geom_line() +
-  geom_point()
+  geom_point() +
+  expand_limits(y = 0)
 g
 
 g <- ggplot(cwt_rs, aes(BROOD_YEAR, n_esc, colour = RELEASE_STAGE_NAME)) +
-  facet_wrap(vars(Age)) +
+  facet_wrap(vars(Age), scales = "free_y") +
   geom_line() +
-  geom_point()
+  geom_point() +
+  expand_limits(y = 0)
 g
 
 # Escapement Fed Fry
