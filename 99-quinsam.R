@@ -9,11 +9,18 @@ rel <- readxl::read_excel(
 )
 
 cwt_rel <- rel %>%
-  summarise(n_CWT = sum(TaggedNum) - sum(ShedTagNum), .by = c(BROOD_YEAR, RELEASE_STAGE_NAME))
+  filter(RELEASE_STAGE_NAME %in% c("Fed Fry", "Smolt 0+", "Seapen 0+")) %>%
+  mutate(RS = ifelse(RELEASE_STAGE_NAME == "Fed Fry", "Fed Fry", "Seapen/Smolt 0+")) %>%
+  summarise(n_CWT = sum(TaggedNum) - sum(ShedTagNum), .by = c(BROOD_YEAR, RS))
 
-g <- ggplot(cwt_rel, aes(BROOD_YEAR, n_CWT, colour = RELEASE_STAGE_NAME)) +
+g <- ggplot(cwt_rel, aes(BROOD_YEAR, n_CWT)) +
   geom_point() +
-  geom_line()
+  geom_line() +
+  facet_wrap(vars(RS), ncol = 1, scales = "free_y") +
+  labs(x = "Brood year", y = "CWT releases") +
+  theme(legend.position = "bottom") +
+  expand_limits(y = 0)
+ggsave("figures/Quinsam_CWT_rel.png", g, height = 5, width = 4)
 
 # Quinsam recovery
 rec <- readxl::read_excel(
@@ -54,39 +61,35 @@ g <- ggplot(cwt, aes(BROOD_YEAR, n_esc)) +
 g
 
 # CWT by release strategy
-cwt_rs <- summarise(rec,
-                    n_catch = sum(TotCatch),
-                    n_esc = sum(Escape),
-                    .by = c(Age, BROOD_YEAR, RELEASE_STAGE_NAME))
+cwt_rs <- rec %>%
+  mutate(RS = ifelse(RELEASE_STAGE_NAME == "Fed Fry", "Fed Fry", "Seapen/Smolt 0+")) %>%
+  summarise(
+    n_catch = sum(TotCatch),
+    n_esc = sum(Escape),
+    .by = c(Age, BROOD_YEAR, RS)
+  )
 
-g <- ggplot(cwt_rs, aes(BROOD_YEAR, n_catch, colour = RELEASE_STAGE_NAME)) +
-  facet_wrap(vars(Age), scales = "free_y") +
+g <- cwt_rs %>%
+  filter(!is.na(Age), Age %in% seq(2, 5)) %>%
+  mutate(Age = paste("Age", Age)) %>%
+  ggplot(aes(BROOD_YEAR, n_catch, colour = RS)) +
+  facet_grid(vars(RS), vars(Age), scales = "free_y") +
   geom_line() +
   geom_point() +
-  expand_limits(y = 0)
-g
+  labs(x = "Brood Year", y = "CWT catch") +
+  expand_limits(y = 0) +
+  theme(legend.position = "bottom")
+ggsave("figures/Quinsam_CWT_catch.png", g, height = 3.5, width = 6)
 
-g <- ggplot(cwt_rs, aes(BROOD_YEAR, n_esc, colour = RELEASE_STAGE_NAME)) +
-  facet_wrap(vars(Age), scales = "free_y") +
+g <- cwt_rs %>%
+  filter(!is.na(Age), Age %in% seq(2, 5)) %>%
+  mutate(Age = paste("Age", Age)) %>%
+  ggplot(aes(BROOD_YEAR, n_esc)) +
+  facet_grid(vars(RS), vars(Age), scales = "free_y") +
   geom_line() +
   geom_point() +
-  expand_limits(y = 0)
-g
-
-# Escapement Fed Fry
-cwt_rs %>% filter(RELEASE_STAGE_NAME == "Fed Fry", !is.na(Age)) %>%
-  reshape2::acast(list("BROOD_YEAR", "Age"), value.var = "n_esc", fill = 0)
-
-# Escapement Traditionals
-cwt_rs %>% filter(RELEASE_STAGE_NAME != "Fed Fry", !is.na(Age)) %>%
-  reshape2::acast(list("BROOD_YEAR", "Age"), value.var = "n_esc", fill = 0, fun.agg = sum)
-
-# Catch Fed Fry
-cwt_rs %>% filter(RELEASE_STAGE_NAME == "Fed Fry", !is.na(Age)) %>%
-  reshape2::acast(list("BROOD_YEAR", "Age"), value.var = "n_catch", fill = 0)
-
-# Catch Traditionals
-cwt_rs %>% filter(RELEASE_STAGE_NAME != "Fed Fry", !is.na(Age)) %>%
-  reshape2::acast(list("BROOD_YEAR", "Age"), value.var = "n_catch", fill = 0, fun.agg = sum)
-
+  labs(x = "Brood Year", y = "CWT escapement", colour = "Release Strategy") +
+  expand_limits(y = 0) +
+  theme(legend.position = "bottom")
+ggsave("figures/Quinsam_CWT_esc.png", g, height = 3.5, width = 6)
 
