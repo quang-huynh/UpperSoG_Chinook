@@ -190,17 +190,14 @@ fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4)
 saveRDS(samp, file = "CM/Quinsam_CM_05.14.25.rds")
 
+samp <- readRDS(file = "CM/Quinsam_CM_05.14.25.rds")
 report <- salmonMSE:::get_report(samp)
-shinystan::launch_shinystan(samp)
+#shinystan::launch_shinystan(samp)
 
 #g1 <- salmonMSE:::CM_maturity(report, d, year1 = min(full_table$BROOD_YEAR), r = 1) +
 #  ggtitle("Quinsam Fed Fry")
 #g2 <- salmonMSE:::CM_maturity(report, d, year1 = min(full_table$BROOD_YEAR), r = 2) +
 #  ggtitle("Quinsam Smolt 0+")
-
-rs_names <- c("Fed Fry", "Smolt 0+")
-g <- salmonMSE:::CM_maturity(report, d, year1 = 2005, rs_names = rs_names, annual = TRUE)
-ggsave("figures/Quinsam_CWT_maturity.png", g, height = 5.5, width = 6)
 
 # Fit to cwt catch
 g <- salmonMSE:::CM_fit_CWTcatch(report, d, year1 = 2005, rs_names = rs_names)
@@ -233,3 +230,58 @@ g <- sapply(report, function(i) {
   geom_col(colour = "grey20") +
   labs(y = "Proportion escapement")
 ggsave("figures/Quinsam_CWT_esc_prop.png", g, height = 4, width = 4)
+
+# Compare maturity from Quinsam and RBT
+samp_RBT <- readRDS(file = "CM/Sarita_RBT_CM_05.20.25.rds")
+report_RBT <- salmonMSE:::get_report(samp_RBT)
+
+g_RBT <- salmonMSE:::CM_maturity(report_RBT, d = salmonMSE:::get_CMdata(samp_RBT@.MISC$CMfit),
+                                 year1 = 1979, rs_names = "RBT Smolt 0+", annual = TRUE) %>%
+  getElement("data") %>%
+  filter(Year >= 2005)
+
+rs_names <- c("Quinsam Fed Fry", "Quinsam Smolt 0+")
+g <- salmonMSE:::CM_maturity(report, d, year1 = 2005, rs_names = rs_names, annual = TRUE) +
+  geom_point(data = g_RBT) +
+  geom_line(data = g_RBT) +
+  geom_ribbon(data = g_RBT, aes(ymin = `2.5%`, ymax = `97.5%`), alpha = 0.25, colour = NA)
+ggsave("figures/Quinsam_CWT_maturity.png", g, height = 5.5, width = 6)
+
+# Apply difference in Quinsam maturity to RBT to model Sarita
+#x <- report[[1]]
+#y <- report_RBT[[1]]
+
+calc_Sarita_fedfry_matt <- function(x, y, type = c("logit", "ratio")) { # x = report Quinsam, y = report RBT
+  type <- match.arg(type)
+
+  # Fed fry/traditional (< 1 means fed fry mature later)
+  if (type == "logit") {
+    matt_dev <- qlogis(x$matt[, , 1]/x$matt[, , 2])
+  } else {
+    matt_dev <- x$matt[, , 1]/x$matt[, , 2]
+  }
+  i <- seq(1979, 2023) %in% seq(2005, 2023)
+
+  matt_new <- array(0, dim(x$matt)) # 1 = Fed fry, 2 = Smolt 0+
+  matt_new[, , 2] <- y$matt[i, , 1] # Traditionals
+
+  # Fed fry
+  if (type == "logit") {
+    matt_new[, , 1] <- plogis(qlogis(y$matt[i, , 1]) + matt_dev)
+  } else {
+    matt_new[, , 1] <- y$matt[i, , 1] * matt_dev
+  }
+  matt_new[is.na(matt_new)] <- 0
+
+  return(list(matt = matt_new))
+}
+
+matt_Sarita <- Map(calc_Sarita_fedfry_matt, x = report, y = report_RBT, type = "ratio")
+
+rs_names <- c("Sarita Fed Fry (hypothesized)", "RBT Smolt 0+")
+g <- salmonMSE:::CM_maturity(
+  matt_Sarita, list(n_r = 2, bmatt = rep(0, 5), Nages = 5),
+  year1 = 2005, rs_names = rs_names, annual = TRUE)
+ggsave("figures/Sarita_maturity.png", g, height = 5.5, width = 6)
+saveRDS(matt_Sarita, file = "CM/Sarita_maturity.rds")
+
