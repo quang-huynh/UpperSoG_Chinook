@@ -37,7 +37,7 @@ brood$Broodtake <- rowSums(brood[, -1], na.rm = TRUE)
 #  geom_line() +
 #  geom_point()
 
-# CWT data
+# CWT data from RBT
 # broodyear 1973 - 2021
 # runyear 1975-2023
 cwt_dat <- readr::read_csv("data/RBT_data_wfisheries.csv")
@@ -94,7 +94,7 @@ g <- cwt_dat %>%
   mutate(p = n/sum(n, na.rm = TRUE), .by = BroodYear) %>%
   filter(!is.na(p)) %>%
   ggplot(aes(BroodYear, p, fill = factor(Age, levels = 5:2))) +
-  geom_col(width = 0.75, colour = NA) +
+  geom_col(width = 1, colour = "grey40") +
   scale_fill_brewer(palette = "Set2") +
   labs(x = "Brood Year", y = "Proportion", fill = "Age", title = "CWT escapement") +
   coord_cartesian(expand = FALSE)
@@ -128,41 +128,38 @@ mat <- c(0, 0.1, 0.4, 0.95, 1)
 vulPT <- c(0, 0.075, 0.9, 0.9, 1)
 vulT <- vulPT
 
+# CTC 23-06 p. 8
+surv <- c(0.1, 0.7, 0.8, 0.9, 0.9)
+M_CTC <- -log(surv)
 
-M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1))
-#M_Cowichan <- c(3, rep(0.3, 4))
-
-surv2 <- 0.7 # -log(surv2) = 0.356
-M <- c(3, rep(0.35, 4)) # Sarita, M = 0.35 is approximately 0.70 survival
-
-#fec_Cowichan <- c(0, 87, 1153, 2780, 2700)
-fec_Sarita <- c(0, 3000, 3000, 3600, 4600) # See Res Doc
+# See Brown et al. Res Doc p. 25 (section 3.3.3), use average of 3900 when needed
+fec_Sarita <- c(0, 1500, 3000, 3600, 4600)
 d <- list(
   Nages = Nages,
   Ldyr = Ldyr,
   lht = 1,
+  n_r = 1,
+  cwtrelease = cwt_rel_annual$rel,
+  cwtesc = array(round(cwt_esc), c(Ldyr, Nages, 1)),
+  cwtcatPT = array(round(cwt_pt), c(Ldyr, Nages, 1)),
+  cwtcatT = array(round(cwt_t), c(Ldyr, Nages, 1)),
+  bvulPT = vulPT,
+  bvulT = vulT,
+  RelRegFPT = rep(1, Ldyr),
+  RelRegFT = rep(1, Ldyr),
+  bmatt = mat,
+  mobase = M_CTC,
   hatchsurv = 0.9,
   gamma = 0.8,
   ssum = 0.4,
-  finitPT = 0.8,
-  finitT = 0.8,
-  bmatt = mat,
   fec = fec_Sarita,
-  bvulPT = vulPT,
-  bvulT = vulT,
-  #mobase = M_CTC,
-  mobase = M,
-  cwtrelease = cwt_rel_annual$rel,
-  cwtesc = round(cwt_esc),
-  cwtcatPT = round(cwt_pt),
-  cwtcatT = round(cwt_t),
-  RelRegFPT = rep(1, Ldyr),
-  RelRegFT = rep(1, Ldyr),
   obsescape = esc_sarita$spawners,
   propwildspawn = round(esc_sarita$p_spawn, 2),
   hatchrelease = c(rel_sarita$Total, rel_sarita$Total[length(rel_sarita$Total)]),
+  s_enroute = 1,
+  finitPT = 0.8,
+  finitT = 0.8,
   cwtExp = 1
-  #covariate = matrix(1, d$Ldyr, 1)
 )
 
 
@@ -191,17 +188,11 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
+#dat <- salmonMSE:::get_CMdata(fit)
 samp <- sample_CM(fit, chains = 4, cores = 4)
-saveRDS(samp, file = "CM/Sarita_RBT_CM_04.28.25.rds")
-samp <- readRDS("CM/Sarita_RBT_CM_04.28.25.rds")
-salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_04.28", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
+saveRDS(samp, file = "CM/Sarita_RBT_CM_05.20.25.rds")
 
-# Fit with M_CTC
-d$mobase <- M_CTC
-fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
-samp <- sample_CM(fit, chains = 4, cores = 4)
-saveRDS(samp, file = "CM/Sarita_RBT_CM_04.28.25_MCTC.rds")
-samp <- readRDS("CM/Sarita_RBT_CM_04.28.25_MCTC.rds")
-salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_04.28_MCTC", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
+samp <- readRDS("CM/Sarita_RBT_CM_05.20.25.rds")
+salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_05.20", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
 
 #shinystan::launch_shinystan(samp)
