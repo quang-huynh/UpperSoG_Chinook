@@ -45,19 +45,18 @@ ctc <- readr::read_csv("data/rbt_er.csv")[, -1] %>%
   rename(Year = brood) %>%
   mutate(Age = paste("Age", age))
 
-g <- salmonMSE:::CM_BYER(report, type = "PT", year1 = 1979, at_age = TRUE) +
+g <- salmonMSE:::CM_ER(report, type = "PT", year1 = 1979, at_age = TRUE) +
   facet_wrap(vars(Age), scales = "free_y") +
   geom_line(data = ctc, aes(y = preterminal_er), colour = "red") +
   guides(colour = guide_legend(title = "Model"))
 ggsave("figures/Sarita_ex_PT_CTC.png", g, height = 4, width = 6)
 
-g <- salmonMSE:::CM_BYER(report, type = "T", year1 = 1979, at_age = TRUE) +
+g <- salmonMSE:::CM_ER(report, type = "T", year1 = 1979, at_age = TRUE) +
   facet_wrap(vars(Age), scales = "free_y") +
   geom_line(data = ctc, aes(y = terminal_er), colour = "red")
 ggsave("figures/Sarita_ex_T_CTC.png", g, height = 4, width = 6)
 
-
-
+g <- salmonMSE:::CM_ER(report, brood = FALSE, type = "all", year1 = 1979, at_age = FALSE)
 
 
 
