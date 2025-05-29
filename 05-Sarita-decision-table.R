@@ -14,6 +14,7 @@ SMSE_list <- lapply(seq_len(nOM), function(i) {
 #### Plot time series ----
 .ts_fn <- function(SMSE, name, var) {
   require(salmonMSE)
+
   out <- plot_statevar_ts(SMSE, var, figure = FALSE, quant = TRUE)
 
   reshape2::melt(out) %>%
@@ -35,17 +36,25 @@ ts_fn <- function(SMSE_list, name, var) {
   g
 }
 
-g1 <- ts_fn(SMSE_list, name, var = "PNI") +
+
+g <- ts_fn(SMSE_list, name, var = "Total Spawners") +
+  coord_cartesian(ylim = c(0, 4000))
+
+g1 <- ts_fn(SMSE_list, name, var = "NOS") +
+  coord_cartesian(ylim = c(0, 3000)) +
   guides(colour = guide_legend(ncol = 2), fill = guide_legend(ncol = 2))
 
-g2 <- ts_fn(SMSE_list, name, var = "NOS") +
+g2 <- ts_fn(SMSE_list, name, var = "HOS") +
   coord_cartesian(ylim = c(0, 3000))
 
-g3 <- ts_fn(SMSE_list, name, var = "p_wild") +
-  coord_cartesian(ylim = c(0, 1)) +
-  labs(y = "p(WILD)")
+g3 <- ts_fn(SMSE_list, name, var = "PNI")
 
-g <- ggpubr::ggarrange(g1, g2, g3, common.legend = TRUE, legend = "bottom")
+g4 <- ts_fn(SMSE_list, name, var = "p_wild") +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(y = "PWILD")
+
+
+g <- ggpubr::ggarrange(g1, g2, g3, g4, ncol = 2, nrow = 2, common.legend = TRUE, legend = "bottom")
 ggsave("figures/SMSE/ts.png", g, height = 5, width = 6)
 
 #### Plot results by individual scenario -----
@@ -83,6 +92,47 @@ dev.off()
 #  plot_fishery(SMSE_list[[i]], ylim = c(0, 3500))
 #  title(name[i])
 #}
+
+png("figures/SMSE/RS_HOS.png", height = 6, width = 6, units = "in", res = 400)
+par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
+for (i in 1:nOM) {
+  plot_RS(SMSE_list[[i]], var = "HOS", type = "abs", name = c("Fed Fry", "Traditionals"), ylim = c(0, 9000))
+  title(name[i])
+}
+dev.off()
+
+png("figures/SMSE/RS_Rel.png", height = 6, width = 6, units = "in", res = 400)
+par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
+for (i in 1:nOM) {
+  plot_RS(SMSE_list[[i]], var = "Smolt", type = "abs", name = c("Fed Fry", "Traditionals"))
+  title(name[i])
+}
+dev.off()
+
+png("figures/SMSE/RS_Esc.png", height = 6, width = 6, units = "in", res = 400)
+par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
+for (i in 1:nOM) {
+  plot_RS(SMSE_list[[i]], var = "Esc", type = "abs", name = c("Fed Fry", "Traditionals"), ylim = c(0, 9000))
+  title(name[i])
+}
+dev.off()
+
+png("figures/SMSE/LHG_NOS.png", height = 6, width = 6, units = "in", res = 400)
+par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
+for (i in 1:nOM) {
+  plot_LHG(SMSE_list[[i]], var = "NOS", type = "abs", name = c("Early Smalls", "Late Larges"), ylim = c(0, 2000))
+  title(name[i])
+}
+dev.off()
+
+png("figures/SMSE/LHG_Smolt.png", height = 6, width = 6, units = "in", res = 400)
+par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
+for (i in 1:nOM) {
+  plot_LHG(SMSE_list[[i]], var = "Smolt", type = "abs", name = c("Early Smalls", "Late Larges"), ylim = c(0, 7e5))
+  title(name[i])
+}
+dev.off()
+
 
 #### Performance metrics ----
 y <- 49
