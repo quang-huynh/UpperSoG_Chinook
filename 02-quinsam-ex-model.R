@@ -241,10 +241,13 @@ g_RBT <- salmonMSE:::CM_maturity(report_RBT, d = salmonMSE:::get_CMdata(samp_RBT
   filter(Year >= 2005)
 
 rs_names <- c("Quinsam Fed Fry", "Quinsam Smolt 0+")
+col_pal <- scales::pal_hue()(2) %>% c("black") %>% structure(names = c(rs_names, "RBT Smolt 0+"))
 g <- salmonMSE:::CM_maturity(report, d, year1 = 2005, rs_names = rs_names, annual = TRUE) +
   geom_point(data = g_RBT) +
   geom_line(data = g_RBT) +
-  geom_ribbon(data = g_RBT, aes(ymin = `2.5%`, ymax = `97.5%`), alpha = 0.25, colour = NA)
+  geom_ribbon(data = g_RBT, aes(ymin = `2.5%`, ymax = `97.5%`), alpha = 0.25, colour = NA) +
+  scale_colour_manual(values = col_pal) +
+  scale_fill_manual(values = col_pal)
 ggsave("figures/Quinsam_CWT_maturity.png", g, height = 5.5, width = 6)
 
 # Apply difference in Quinsam maturity to RBT to model Sarita
@@ -279,9 +282,13 @@ calc_Sarita_fedfry_matt <- function(x, y, type = c("logit", "ratio")) { # x = re
 matt_Sarita <- Map(calc_Sarita_fedfry_matt, x = report, y = report_RBT, type = "ratio")
 
 rs_names <- c("Sarita Fed Fry (hypothesized)", "RBT Smolt 0+")
+col_pal <- c("magenta", "black") %>% structure(names = rs_names)
 g <- salmonMSE:::CM_maturity(
   matt_Sarita, list(n_r = 2, bmatt = rep(0, 5), Nages = 5),
-  year1 = 2005, rs_names = rs_names, annual = TRUE)
+  year1 = 2005, rs_names = rs_names, annual = TRUE) +
+  scale_colour_manual(values = col_pal) +
+  scale_fill_manual(values = col_pal)
 ggsave("figures/Sarita_maturity.png", g, height = 5.5, width = 6)
+
 saveRDS(matt_Sarita, file = "CM/Sarita_maturity.rds")
 
