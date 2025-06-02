@@ -270,7 +270,7 @@ fpe <- reshape2::acast(sim_surv, list("Simulation", "year"), value.var = "fpe")
 
 #png("figures/Sarita_envvar.png", height = 4, width = 6, res = 400, units = "in")
 #par(mar = c(5, 4, 1, 1))
-#matplot(t(fpe), typ = 'l', ylab = "Egg-fry survival", xlab = "Projection  year", ylim = c(0, 0.15))
+#matplot(t(fpe[1:3, ]), typ = 'l', ylab = "Egg-fry survival", xlab = "Projection  year", ylim = c(0, 0.15), lty = 1)
 #dev.off()
 
 Habitat <- new(
