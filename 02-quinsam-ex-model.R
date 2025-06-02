@@ -280,6 +280,8 @@ calc_Sarita_fedfry_matt <- function(x, y, type = c("logit", "ratio")) { # x = re
 }
 
 matt_Sarita <- Map(calc_Sarita_fedfry_matt, x = report, y = report_RBT, type = "ratio")
+saveRDS(matt_Sarita, file = "CM/Sarita_maturity.rds")
+matt_Sarita <- readRDS("CM/Sarita_maturity.rds")
 
 rs_names <- c("Sarita Fed Fry (hypothesized)", "RBT Smolt 0+")
 col_pal <- c("magenta", "black") %>% structure(names = rs_names)
@@ -290,5 +292,11 @@ g <- salmonMSE:::CM_maturity(
   scale_fill_manual(values = col_pal)
 ggsave("figures/Sarita_maturity.png", g, height = 5.5, width = 6)
 
-saveRDS(matt_Sarita, file = "CM/Sarita_maturity.rds")
+# Take average from last 6 complete brood years
+#matt_avg <- sapply(matt_Sarita, function(x) {
+#  apply(x$matt[seq(9, 14), , ], 2:3, mean)
+#}, simplify = "array")
+
+#matplot(matt_avg[, 1, ], typ = 'l')  # Fed Fry
+#matlines(matt_avg[, 2, ], typ = 'l') # Traditionals
 
