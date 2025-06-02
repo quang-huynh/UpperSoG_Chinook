@@ -11,6 +11,22 @@ SMSE_list <- lapply(seq_len(nOM), function(i) {
   return(SMSE)
 })
 
+#### Plot maturity and vulnerability ----
+png("figures/SMSE/maturity_vul.png", height = 6, width = 3, units = "in", res = 400)
+par(mfrow = c(3, 1), mar = c(5, 4, 1, 1))
+salmonMSE:::plot_Mjuv_RS(SMSE_list[[1]]@Misc$SOM@Hatchery[[1]]@p_mature_HOS[, , 1, ],
+                         RS_names = c("Fed Fry", "Traditionals"), ylab = "Proportion mature")
+
+salmonMSE:::plot_SOM(SMSE_list[[1]]@Misc$SOM@Harvest[[1]], "vulPT",
+                     type = "age", nsim = 100, maxage = 5,
+                     ylab = "Juvenile fishery vulnerability")
+
+salmonMSE:::plot_SOM(SMSE_list[[1]]@Misc$SOM@Harvest[[1]], "vulT",
+                     type = "age", nsim = 100, maxage = 5,
+                     ylab = "Terminal fishery vulnerability")
+
+dev.off()
+
 #### Plot time series ----
 .ts_fn <- function(SMSE, name, var) {
   require(salmonMSE)
