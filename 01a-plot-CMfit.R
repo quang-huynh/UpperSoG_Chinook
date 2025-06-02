@@ -2,7 +2,7 @@
 # These plots are all available in the markdown report
 
 # Get MCMC values
-samp <- readRDS("CM/Sarita_RBT_CM_04.28.25_MCTC.rds")
+samp <- readRDS("CM/Sarita_RBT_CM_05.20.25.rds")
 report <- salmonMSE:::get_report(samp)
 
 # Get data
@@ -16,6 +16,9 @@ ggsave("figures/Sarita_maturity_calendar.png", g, height = 8, width = 6)
 g <- salmonMSE:::CM_maturity(report, d, 1979, brood = TRUE, annual = TRUE) +
   ggtitle("Brood year maturity")
 ggsave("figures/Sarita_maturity_brood.png", g, height = 8, width = 6)
+
+g <- salmonMSE:::CM_ts_origin(report, 1979, var = "Spawners")
+ggsave("figures/Sarita_spawners.png", g, height = 3, width = 5)
 
 
 # Plot F
