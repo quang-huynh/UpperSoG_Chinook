@@ -1,0 +1,46 @@
+<!-- The following code should appear at the beginning of the first appendix.
+(if you have one)
+After that, all subsequent sections will be turned into appendices. -->
+
+`r if(knitr:::is_latex_output()) '% begin csasdown appendix'`
+`r if(!knitr:::is_latex_output()) '# (APPENDIX) Appendix {-}'`
+
+\clearpage
+
+# ROBERTSON CWT EXPLOITATION RATE (ER) MODEL {#app:sarita-cwt}
+
+Typical run reconstruction uses a historical time series of spawner and recruit data to estimate the productivity of salmon populations. Escapement time series may be available but catch may not be identifiable for a population of interest, for example, if the population is a conservation unit, as part of a larger stock complex and catch composition is not identified to individual CUs.
+
+Walters and Korman (2024) demonstrated an approach for reconstruction if Coded Wire Tag (CWT) data from an indicator hatchery are assumed to be representative to life cycle parameters of a natural population.
+
+The model consists of two components. 
+First, CWT data informs natural mortality, year-specific maturity, and exploitation rate in the marine environment. 
+
+Second, these parameters are then applied to the system of interest and informs the size and productivity of the population that has a time series of total escapement. The number of hatchery releases in the system informs hatchery production, and the difference in total escapement and hatchery production informs natural production. Both steps are accomplished within a single model fit, which can account for uncertainty among the various data components, and posterior distributions of parameters are obtained by MCMC.
+
+For the salmonMSE modeling, we primarily used the Robertson exploitation rate model to inform maturity (for traditionals), fishery vulnerability at age (assumed identical for all release strategies and life cycle groups), as well the relative abundance of hatchery and natural spawners for Sarita Chinook. 
+
+For both the salmonMSE operating model and exploitation rate estimation model, natural mortality at age 2--5 was fixed to values used in the CTC exploitation rate model. While the age 1 natural mortality value was estimated in the Robertson ER model, values from the life cycle table were used in the operating model to illustrate differences among life cycle groups.
+
+# QUINSAM CWT EXPLOITATION RATE (ER) MODEL {#app:quinsam-cwt}
+
+Quinsam CWT provided an alternative dataset from which to estimate differences in maturity by release strategy. Brood year maturity was estimated for traditionals and for each age, a constant offset parameter was estimated to arrive at the maturity for fed fry.
+
+The ratios of differences in the Quinsam system was then applied to the Robertson traditionals to arrive at a hypothesized maturity function for Sarita fed fry.
+
+```{r quinsam-mat, fig.cap="Comparison of brood year maturity at age estimates for Quinsam and Robertson (RBT)."}
+knitr::include_graphics(here::here("figures/Quinsam_CWT_maturity.png"))
+```
+
+```{r sarita-mat, fig.cap="Comparison of brood year maturity at age for Robertson traditionals (estimated from CWT) and fed fry (hypothesized after applying differences from Quinsam)."}
+knitr::include_graphics(here::here("figures/Sarita_maturity.png"))
+```
+
+```{r sarita-spawner, fig.cap="Sarita spawner estimates from the Robertson ER model."}
+knitr::include_graphics(here::here("figures/Sarita_spawners.png"))
+```
+
+
+
+<!-- At the end of your appendices add: -->
+`r if(knitr:::is_latex_output()) '% end csasdown appendix'`
