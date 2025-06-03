@@ -53,25 +53,31 @@ ts_fn <- function(SMSE_list, name, var) {
 }
 
 
-g <- ts_fn(SMSE_list, name, var = "Total Spawners") +
-  coord_cartesian(ylim = c(0, 4000))
-
-g1 <- ts_fn(SMSE_list, name, var = "NOS") +
-  coord_cartesian(ylim = c(0, 3000)) +
+g1 <- ts_fn(SMSE_list, name, var = "Total Spawners") +
+  coord_cartesian(ylim = c(0, 4000)) +
   guides(colour = guide_legend(ncol = 2), fill = guide_legend(ncol = 2))
 
-g2 <- ts_fn(SMSE_list, name, var = "HOS") +
-  coord_cartesian(ylim = c(0, 3000))
+g2 <- ts_fn(SMSE_list, name, var = "NOS") +
+  coord_cartesian(ylim = c(0, 4000))
+
+#g2 <- ts_fn(SMSE_list, name, var = "HOS") +
+#  coord_cartesian(ylim = c(0, 3000))
 
 g3 <- ts_fn(SMSE_list, name, var = "PNI")
 
 g4 <- ts_fn(SMSE_list, name, var = "p_wild") +
   coord_cartesian(ylim = c(0, 1)) +
-  labs(y = "PWILD")
+  labs(y = "pWILD")
 
+g5 <- ts_fn(SMSE_list, name, var = "pHOS_effective") +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(y = expression(pHOS[eff]))
 
-g <- ggpubr::ggarrange(g1, g2, g3, g4, ncol = 2, nrow = 2, common.legend = TRUE, legend = "bottom")
-ggsave("figures/SMSE/ts.png", g, height = 5, width = 6)
+g6 <- ts_fn(SMSE_list, name, var = "pNOB") +
+  coord_cartesian(ylim = c(0, 1))
+
+g <- ggpubr::ggarrange(g1, g2, g3, g4, g5, g6, ncol = 2, nrow = 3, common.legend = TRUE, legend = "bottom")
+ggsave("figures/SMSE/ts.png", g, height = 7, width = 6)
 
 #### Plot results by individual scenario -----
 png("figures/SMSE/spawners_prop.png", height = 6, width = 6, units = "in", res = 400)
@@ -180,7 +186,17 @@ MA <- sapply(SMSE_list, function(x) {
   mutate(scenario = name[Var2])
 p_wild <- sapply(SMSE_list, function(x) x@p_wild[, , y]) %>%
   reshape2::melt() %>%
-  rename(Simulation = Var1, PWILD = value) %>%
+  rename(Simulation = Var1, pWILD = value) %>%
+  mutate(scenario = name[Var2])
+
+pHOSeff <- sapply(SMSE_list, function(x) x@pHOS_effective[, , y]) %>%
+  reshape2::melt() %>%
+  rename(Simulation = Var1, pHOSeff = value) %>%
+  mutate(scenario = name[Var2])
+
+pNOB <- sapply(SMSE_list, function(x) x@pNOB[, , y]) %>%
+  reshape2::melt() %>%
+  rename(Simulation = Var1, pNOB = value) %>%
   mutate(scenario = name[Var2])
 
 K <- sapply(SMSE_list, function(x) {
@@ -213,7 +229,7 @@ P_Smsy85 <- sapply(SMSE_list, function(x) {
   mean(val)
 })
 
-val_sim <- list(PNI, NOS, TS, MA, p_wild, K, KT) %>%
+val_sim <- list(PNI, NOS, TS, MA, p_wild, K, KT, pHOSeff, pNOB) %>%
   Reduce(left_join, .) %>%
   select(!Var2) %>%
   reshape2::melt(id.vars = c("Simulation", "scenario")) %>%
