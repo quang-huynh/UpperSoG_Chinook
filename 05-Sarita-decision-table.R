@@ -118,7 +118,7 @@ dev.off()
 png("figures/SMSE/RS_HOS.png", height = 6, width = 6, units = "in", res = 400)
 par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
 for (i in 1:nOM) {
-  plot_RS(SMSE_list[[i]], var = "HOS", type = "abs", name = c("Fed Fry", "Traditionals"), ylim = c(0, 9000))
+  plot_RS(SMSE_list[[i]], var = "HOS", type = "abs", name = c("Fed Fry", "Traditionals"), ylim = c(0, 2000))
   title(name[i])
 }
 dev.off()
@@ -294,11 +294,11 @@ ggsave("figures/SMSE/performance_table.png", g, width = 7, height = 2)
 
 g <- salmonMSE::plot_tradeoff(
   val_sim %>% filter(variable == "Spawners") %>% select(lwr, median, upr) %>% as.matrix(),
-  val_sim %>% filter(variable == "PWILD") %>% select(lwr, median, upr) %>% as.matrix(),
+  val_sim %>% filter(variable == "pWILD") %>% select(lwr, median, upr) %>% as.matrix(),
   name,
   factor(rep(1, length(name))),
-  xlab = "Spawners",
-  ylab = "PWILD",
+  xlab = "Total spawners",
+  ylab = "pWILD",
   x1lab = "Scenario",
   x2lab = NULL
 ) +
