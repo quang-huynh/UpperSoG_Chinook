@@ -31,7 +31,11 @@ dev.off()
 .ts_fn <- function(SMSE, name, var) {
   require(salmonMSE)
 
-  out <- plot_statevar_ts(SMSE, var, figure = FALSE, quant = TRUE)
+  if (var == "Brood") {
+    out <- apply(SMSE@NOB + SMSE@HOB, 3, quantile, c(0.025, 0.5, 0.975))
+  } else {
+    out <- plot_statevar_ts(SMSE, var, figure = FALSE, quant = TRUE)
+  }
 
   reshape2::melt(out) %>%
     rename(Year = Var2) %>%
@@ -54,11 +58,15 @@ ts_fn <- function(SMSE_list, name, var) {
 
 
 g1 <- ts_fn(SMSE_list, name, var = "Total Spawners") +
-  coord_cartesian(ylim = c(0, 4000)) +
+  coord_cartesian(ylim = c(0, 5000)) +
   guides(colour = guide_legend(ncol = 2), fill = guide_legend(ncol = 2))
 
-g2 <- ts_fn(SMSE_list, name, var = "NOS") +
-  coord_cartesian(ylim = c(0, 4000))
+g2 <- ts_fn(SMSE_list, name, var = "pHOS_effective") +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(y = expression(pHOS[eff]))
+
+#g2 <- ts_fn(SMSE_list, name, var = "NOS") +
+#  coord_cartesian(ylim = c(0, 5000))
 
 #g2 <- ts_fn(SMSE_list, name, var = "HOS") +
 #  coord_cartesian(ylim = c(0, 3000))
@@ -69,9 +77,8 @@ g4 <- ts_fn(SMSE_list, name, var = "p_wild") +
   coord_cartesian(ylim = c(0, 1)) +
   labs(y = "pWILD")
 
-g5 <- ts_fn(SMSE_list, name, var = "pHOS_effective") +
-  coord_cartesian(ylim = c(0, 1)) +
-  labs(y = expression(pHOS[eff]))
+g5 <- ts_fn(SMSE_list, name, var = "Brood") +
+  coord_cartesian(ylim = c(500, 600))
 
 g6 <- ts_fn(SMSE_list, name, var = "pNOB") +
   coord_cartesian(ylim = c(0, 1))
@@ -199,6 +206,11 @@ pNOB <- sapply(SMSE_list, function(x) x@pNOB[, , y]) %>%
   rename(Simulation = Var1, pNOB = value) %>%
   mutate(scenario = name[Var2])
 
+Brood <- sapply(SMSE_list, function(x) x@NOB[, , y] + x@HOB[, , y]) %>%
+  reshape2::melt() %>%
+  rename(Simulation = Var1, Brood = value) %>%
+  mutate(scenario = name[Var2])
+
 K <- sapply(SMSE_list, function(x) {
   vars <- c("KPT_NOS", "KPT_HOS", "KT_NOS", "KT_HOS")
   val <- lapply(vars, function(i) slot(x, i))
@@ -229,7 +241,7 @@ P_Smsy85 <- sapply(SMSE_list, function(x) {
   mean(val)
 })
 
-val_sim <- list(PNI, NOS, TS, MA, p_wild, K, KT, pHOSeff, pNOB) %>%
+val_sim <- list(PNI, NOS, TS, MA, p_wild, Brood, KT, pHOSeff, pNOB) %>%
   Reduce(left_join, .) %>%
   select(!Var2) %>%
   reshape2::melt(id.vars = c("Simulation", "scenario")) %>%
