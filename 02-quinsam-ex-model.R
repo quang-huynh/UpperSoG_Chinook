@@ -297,6 +297,18 @@ ggsave("figures/Sarita_maturity.png", g, height = 5.5, width = 6)
 #  apply(x$matt[seq(9, 14), , ], 2:3, mean)
 #}, simplify = "array")
 
+#g <- reshape2::melt(matt_avg) %>%
+#  rename(Maturity = value) %>%
+#  filter(Var1 %in% 2:4) %>%
+#  mutate(Age = paste("Age", Var1), `Release Strategy` = rs_names[Var2]) %>%
+#  ggplot(aes(Maturity, fill = `Release Strategy`, colour = `Release Strategy`)) +
+#  facet_wrap(vars(Age), scales = "free_x") +
+#  geom_density(alpha = 0.25) +
+#  scale_colour_manual(values = col_pal) +
+#  scale_fill_manual(values = col_pal) +
+#  labs(y = "Posterior density") +
+#  theme(legend.position = "bottom")
+
 #matplot(matt_avg[, 1, ], typ = 'l')  # Fed Fry
 #matlines(matt_avg[, 2, ], typ = 'l') # Traditionals
 

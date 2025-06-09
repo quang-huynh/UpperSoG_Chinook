@@ -6,7 +6,7 @@ library(salmonMSE)
 maxage <- 5
 nsim <- 100
 nyears <- 2
-proyears <- 50
+proyears <- 30
 n_g <- 2
 
 # Load exploitation rate model - Sarita (with Robertson CWT traditionals)
@@ -51,6 +51,8 @@ p_mature[] <- matt_avg[, 1, sim_samp] %>% t() %>%
   array(c(nsim, maxage, nyears + proyears))
 
 fec_Sarita <- c(0, 1500, 3000, 3600, 4600) # See Res Doc, but set age 2 fecundity arbitrarily equal to half of age 3
+p_female <- c(0, 0.01, 0.1, 0.55, 0.8)
+fec <- fec_Sarita * p_female
 
 Bio <- new(
   "Bio",
@@ -58,13 +60,9 @@ Bio <- new(
   n_g = n_g,
   p_LHG = c(0.95, 0.05),
   p_mature = p_mature,
-  #SRrel = "BH",
-  #kappa = 1.0001,
-  #capacity_smolt = 1e12,
-  #phi = 1,
   Mjuv_NOS = Mjuv_NOS,
-  p_female = 0.4,
-  fec = fec_Sarita,
+  p_female = 1, # p_female specified in fecundity
+  fec = fec,
   s_enroute = 1
 )
 
@@ -80,8 +78,10 @@ vulT <- sapply(report_RBT[sim_samp], getElement, "vulT")
 
 Harvest <- new(
   "Harvest",
+  type_PT = "u",
+  type_T = "catch",
   u_preterminal = 0.35,
-  u_terminal = 0.05,
+  K_T = 750, # Will evaluate a grid of 750, 1000, 1250
   MSF_PT = FALSE,
   MSF_T = TRUE,
   release_mort = c(0, 0),
@@ -125,10 +125,12 @@ sarita_rel %>%
   summarise(marked = sum(), n = sum(TotalRelease), .by = c(RELEASE_STAGE_NAME, BROOD_YEAR)) %>%
   filter(BROOD_YEAR == 2023)
 
+
+h2 <- EnvStats::rnormTrunc(nsim, 0.25, 0.15, min = 0, max = 0.5)
 Hatchery <- new(
   "Hatchery",
   n_r = n_r,
-  n_yearling = c(292853, 288745), # Sarita smalls and traditionals in 2023
+  n_yearling = c(0.5, 0.5) * 500000, # Sarita smalls and traditionals in 2023
   n_subyearling = c(0, 0),
   s_prespawn = 0.85,  # Hatchery data, Sarita AHA inputs (Sarita CN AHA inputs.xlsx)
   s_egg_smolt = 0.9,  # Assumed 10 percent mortality shortly after release
@@ -139,12 +141,19 @@ Hatchery <- new(
   gamma = 0.8,  # HSRG standard, Sarita AHA inputs
   m = 1,
   pmax_esc = 1,
-  pmax_NOB = 0.50,     # Arbitrary
-  ptarget_NOB = 0.11,  # Hatchery data, Sarita AHA inputs
-  phatchery = 0.75,    # Arbitrary
-  premove_HOS = 0.21,  # Sarita AHA inputs
-  fec_brood = fec_Sarita, #rep(3625, maxage), # Hatchery data, Sarita AHA inputs
-  fitness_type = c("none", "none")
+  pmax_NOB = 0.50,     # SEP guideline, suggested by Lian
+  ptarget_NOB = 0.50,  # Hatchery data, Sarita AHA inputs, will evaluate a grid of 50, 75, 100 percent
+  phatchery = NA,      # Hatchery escapement (not used for brood) will spawn
+  premove_HOS = 0,     # Set to zero for now, Sarita AHA inputs use 21 percent
+  fec_brood = fec, #rep(3625, maxage) is used from Hatchery data, Sarita AHA input
+  fitness_type = c("Ford", "none"),
+  theta = c(100, 80),
+  rel_loss = rep(0, 3),
+  zbar_start = c(90, 80),
+  fitness_variance = 100,
+  phenotype_variance = 10,
+  heritability = h2,
+  fitness_floor = 0.01
 )
 
 ### Historical object ----
@@ -294,19 +303,7 @@ SOM <- new("SOM",
            Hatchery = Hatchery,
            Harvest = Harvest,
            Historical = Historical)
-saveRDS(SOM, "SOM/SOM1.rds")
-
-# Scenario 2 - 90% fed fry
-SOM2 <- SOM
-SOM2@Hatchery@n_yearling <- c(0.9, 0.1) * sum(Hatchery@n_yearling)
-saveRDS(SOM2, "SOM/SOM2.rds")
-
-
-# Scenario 3 - 90% traditionals
-SOM3 <- SOM
-SOM3@Hatchery@n_yearling <- c(0.1, 0.9) * sum(Hatchery@n_yearling)
-saveRDS(SOM3, "SOM/SOM3.rds")
-
+saveRDS(SOM, "SOM/SOM_base.rds")
 
 # Scenario 4 - high fry/spawner
 env_series_high <- rep(80, proyears)
@@ -314,17 +311,7 @@ sim_surv2 <- get_eggfry_surv(env_series_high)
 fpe2 <- reshape2::acast(sim_surv2, list("Simulation", "year"), value.var = "fpe")
 
 #matplot(t(fpe2), typ = 'l', ylab = "Egg-fry survival", xlab = "Projection  year", ylim = c(0, 0.4))
-
-
-SOM4 <- SOM
-SOM4@Habitat@fry_sdev <- fpe2
-saveRDS(SOM4, "SOM/SOM4.rds")
-
-
-# Scenario 5 - 50% pNOB
-SOM5 <- SOM
-SOM5@Hatchery@ptarget_NOB <- 0.5
-saveRDS(SOM5, "SOM/SOM5.rds")
-
-
+SOM2 <- SOM
+SOM2@Habitat@fry_sdev <- fpe2
+saveRDS(SOM2, "SOM/SOM_highsurv.rds")
 

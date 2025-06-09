@@ -19,11 +19,10 @@ SMSE_list <- sfLapply(seq_len(nOM), function(i) {
 sfStop()
 tictoc::toc()
 
-#SOM <- readRDS("SOM/SOM_base2.rds")
-#SMSE <- salmonMSE(SOM)
+SOM <- readRDS("SOM/SOM_base_3sim.rds")
+SMSE <- salmonMSE(SOM, convert = FALSE)
 #saveRDS(SMSE, file = "SMSE/Sarita_base2.rds")
 
 #lhg_name <- c("Early Smalls", "Late Larges")
 #rs_name <- c("Fed Fry", "Smolt 0+")
 #report(SMSE, dir = "SMSE", filename = "Sarita_base2")
-
