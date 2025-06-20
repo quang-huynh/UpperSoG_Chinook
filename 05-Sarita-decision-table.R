@@ -2,27 +2,48 @@
 
 library(salmonMSE)
 
-#### Load results ----
-nOM <- 5
-name <- paste0("(", 1:nOM, ") ", c("Base", "90% Fed Fry", "90% Trads", "High fry/spawner", "High pNOB"))
+gr <- expand.grid(
+  Ctarget = c(750, 1000, 1250),
+  pNOB_target = c(0.5, 0.75, 1)
+) %>%
+  mutate(scenario = paste(Ctarget, "C, pNOB =", pNOB_target), ref = "grid")
 
-SMSE_list <- lapply(seq_len(nOM), function(i) {
+g2 <- data.frame(
+  Ctarget = 1000,
+  pNOB_target = 0.5,
+  scenario = c("90% Traditionals", "90% Smalls", "High Surv.", "NoHarv.NoHatch."),
+  ref = "additional"
+)
+
+gr <- rbind(gr, g2) %>%
+  mutate(scenario = paste0("(", 1:nrow(.), ") ", scenario))
+gr <- gr[-nrow(gr), ]
+
+name <- gr$scenario
+nOM <- nrow(gr)
+
+SMSE_list <- lapply(1:nrow(gr), function(i) {
   SMSE <- readRDS(file.path("SMSE", paste0("Sarita", i, ".rds")))
   return(SMSE)
 })
 
+
 #### Plot maturity and vulnerability ----
 png("figures/SMSE/maturity_vul.png", height = 6, width = 3, units = "in", res = 400)
 par(mfrow = c(3, 1), mar = c(5, 4, 1, 1))
-salmonMSE:::plot_Mjuv_RS(SMSE_list[[1]]@Misc$SOM@Hatchery[[1]]@p_mature_HOS[, , 1, ],
+
+SOM <- SMSE_list[[1]]@Misc$SOM
+salmonMSE:::plot_Mjuv_RS(SOM@Hatchery[[1]]@p_mature_HOS[, , 1, ],
                          RS_names = c("Fed Fry", "Traditionals"), ylab = "Proportion mature")
 
-salmonMSE:::plot_SOM(SMSE_list[[1]]@Misc$SOM@Harvest[[1]], "vulPT",
-                     type = "age", nsim = 100, maxage = 5,
+salmonMSE:::plot_SOM(SOM@Harvest[[1]], "vulPT",
+                     type = "age", nsim = SOM@nsim, maxage =  SOM@Bio[[1]]@maxage,
+                     nyears = SOM@nyears, proyears = SOM@proyears,
                      ylab = "Juvenile fishery vulnerability")
 
-salmonMSE:::plot_SOM(SMSE_list[[1]]@Misc$SOM@Harvest[[1]], "vulT",
-                     type = "age", nsim = 100, maxage = 5,
+salmonMSE:::plot_SOM(SOM@Harvest[[1]], "vulT",
+                     type = "age", nsim = SOM@nsim, maxage =  SOM@Bio[[1]]@maxage,
+                     nyears = SOM@nyears, proyears = SOM@proyears,
                      ylab = "Terminal fishery vulnerability")
 
 dev.off()
@@ -58,7 +79,7 @@ ts_fn <- function(SMSE_list, name, var) {
 
 
 g1 <- ts_fn(SMSE_list, name, var = "Total Spawners") +
-  coord_cartesian(ylim = c(0, 5000)) +
+  coord_cartesian(ylim = c(0, 8000)) +
   guides(colour = guide_legend(ncol = 2), fill = guide_legend(ncol = 2))
 
 g2 <- ts_fn(SMSE_list, name, var = "pHOS_effective") +
@@ -78,7 +99,7 @@ g4 <- ts_fn(SMSE_list, name, var = "p_wild") +
   labs(y = "pWILD")
 
 g5 <- ts_fn(SMSE_list, name, var = "Brood") +
-  coord_cartesian(ylim = c(500, 600))
+  coord_cartesian(ylim = c(300, 600))
 
 g6 <- ts_fn(SMSE_list, name, var = "pNOB") +
   coord_cartesian(ylim = c(0, 1))
@@ -88,7 +109,7 @@ ggsave("figures/SMSE/ts.png", g, height = 7, width = 6)
 
 #### Plot results by individual scenario -----
 png("figures/SMSE/spawners_prop.png", height = 6, width = 6, units = "in", res = 400)
-par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
+par(mfrow = c(3, 3), mar = c(5, 4, 1, 1))
 for (i in 1:nOM) {
   plot_spawners(SMSE_list[[i]])
   box()
@@ -97,9 +118,9 @@ for (i in 1:nOM) {
 dev.off()
 
 png("figures/SMSE/spawners.png", height = 6, width = 6, units = "in", res = 400)
-par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
+par(mfrow = c(3, 3), mar = c(5, 4, 1, 1))
 for (i in 1:nOM) {
-  plot_spawners(SMSE_list[[i]], prop = FALSE, ylim = c(0, 3500))
+  plot_spawners(SMSE_list[[i]], prop = FALSE, ylim = c(0, 8000))
   title(name[i])
 }
 dev.off()
@@ -123,15 +144,15 @@ dev.off()
 #}
 
 png("figures/SMSE/RS_HOS.png", height = 6, width = 6, units = "in", res = 400)
-par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
+par(mfrow = c(3, 3), mar = c(5, 4, 1, 1))
 for (i in 1:nOM) {
-  plot_RS(SMSE_list[[i]], var = "HOS", type = "abs", name = c("Fed Fry", "Traditionals"), ylim = c(0, 2000))
+  plot_RS(SMSE_list[[i]], var = "HOS", type = "abs", name = c("Fed Fry", "Traditionals"), ylim = c(0, 7000))
   title(name[i])
 }
 dev.off()
 
 png("figures/SMSE/RS_Rel.png", height = 6, width = 6, units = "in", res = 400)
-par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
+par(mfrow = c(3, 3), mar = c(5, 4, 1, 1))
 for (i in 1:nOM) {
   plot_RS(SMSE_list[[i]], var = "Smolt", type = "abs", name = c("Fed Fry", "Traditionals"))
   title(name[i])
@@ -139,23 +160,23 @@ for (i in 1:nOM) {
 dev.off()
 
 png("figures/SMSE/RS_Esc.png", height = 6, width = 6, units = "in", res = 400)
-par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
+par(mfrow = c(3, 3), mar = c(5, 4, 1, 1))
 for (i in 1:nOM) {
-  plot_RS(SMSE_list[[i]], var = "Esc", type = "abs", name = c("Fed Fry", "Traditionals"), ylim = c(0, 9000))
+  plot_RS(SMSE_list[[i]], var = "Esc", type = "abs", name = c("Fed Fry", "Traditionals"), ylim = c(0, 7000))
   title(name[i])
 }
 dev.off()
 
 png("figures/SMSE/LHG_NOS.png", height = 6, width = 6, units = "in", res = 400)
-par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
+par(mfrow = c(3, 3), mar = c(5, 4, 1, 1))
 for (i in 1:nOM) {
-  plot_LHG(SMSE_list[[i]], var = "NOS", type = "abs", name = c("Early Smalls", "Late Larges"), ylim = c(0, 2000))
+  plot_LHG(SMSE_list[[i]], var = "NOS", type = "abs", name = c("Early Smalls", "Late Larges"), ylim = c(0, 1500))
   title(name[i])
 }
 dev.off()
 
 png("figures/SMSE/LHG_Smolt.png", height = 6, width = 6, units = "in", res = 400)
-par(mfrow = c(3, 2), mar = c(5, 4, 1, 1))
+par(mfrow = c(3, 3), mar = c(5, 4, 1, 1))
 for (i in 1:nOM) {
   plot_LHG(SMSE_list[[i]], var = "Smolt", type = "abs", name = c("Early Smalls", "Late Larges"), ylim = c(0, 7e5))
   title(name[i])
@@ -164,7 +185,7 @@ dev.off()
 
 
 #### Performance metrics ----
-y <- 49
+y <- 29
 
 PNI <- sapply(SMSE_list, function(x) x@PNI[, 1, y]) %>%
   reshape2::melt() %>%
@@ -231,13 +252,13 @@ KT <- sapply(SMSE_list, function(x) {
   rename(Simulation = Var1, `Catch Term.` = value) %>%
   mutate(scenario = name[Var2])
 
-P_Sgen <- sapply(SMSE_list, function(x) {
-  val <- rowSums(x@NOS[, 1, , y]) > 250
+P_Sgen <- sapply(SMSE_list, function(x, Sgen = 250) {
+  val <- rowSums(x@NOS[, 1, , y]) >= Sgen
   mean(val)
 })
 
-P_Smsy85 <- sapply(SMSE_list, function(x) {
-  val <- rowSums(x@NOS[, 1, , y]) > 0.85*560
+P_Smsy85 <- sapply(SMSE_list, function(x, SMSY = 560) {
+  val <- rowSums(x@NOS[, 1, , y]) >= 0.85 * SMSY
   mean(val)
 })
 
@@ -246,28 +267,32 @@ val_sim <- list(PNI, NOS, TS, MA, p_wild, Brood, KT, pHOSeff, pNOB) %>%
   select(!Var2) %>%
   reshape2::melt(id.vars = c("Simulation", "scenario")) %>%
   summarise(m = mean(value),
-            median = median(value),
-            lwr = quantile(value, 0.025),
-            upr = quantile(value, 0.975),
+            median = median(value, na.rm = TRUE),
+            lwr = quantile(value, 0.025, na.rm = TRUE),
+            upr = quantile(value, 0.975, na.rm = TRUE),
             .by = c(scenario, variable)) %>%
+  left_join(gr, by = "scenario") %>%
   mutate(scenario = factor(scenario, rev(name)))
 
 g <- val_sim %>%
-  ggplot(aes(scenario, median, ymin = lwr, ymax = upr)) +
+  ggplot(aes(scenario, median, ymin = lwr, ymax = upr, shape = factor(Ctarget), colour = factor(pNOB_target))) +
   facet_wrap(vars(variable), scales = "free_x", strip.position = "top") +
   geom_point() +
   geom_linerange() +
   coord_flip() +
+  scale_shape_manual(values = c(1, 4, 16)) +
   #theme(strip.placement = "outside") +
-  labs(x = NULL, y = NULL)
-ggsave("figures/SMSE/performance_metrics.png", g, width = 6, height = 4)
+  theme(legend.position = "bottom") +
+  guides(colour = guide_legend(ncol = 1), shape = guide_legend(ncol = 1)) +
+  labs(x = NULL, y = NULL, shape = "Catch target", colour = "pNOB target")
+ggsave("figures/SMSE/performance_metrics.png", g, width = 7, height = 7)
 
 val_prob <- data.frame(
   scenario = name,
   P_250 = P_Sgen,
   P_476 = P_Smsy85
 ) %>%
-  reshape2::melt() %>%
+  reshape2::melt(id.var = "scenario") %>%
   rename(median = value)
 
 d <- val_sim %>%
@@ -295,25 +320,24 @@ g <- ggplot(d, aes(variable, scenario)) +
     panel.border = element_blank(),
     axis.ticks.x = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x = element_text(color = "grey10"),
+    axis.text.x = element_text(color = "grey10", angle = 90),
     strip.placement = "outside",
     strip.background = element_blank()
   ) +
   scale_x_discrete(position = "top") +
   scale_y_discrete(labels = levels(d$scenario)) +
   scale_fill_gradient2(low = "deeppink", high = "green4", mid = "white", limits = c(0, 1), midpoint = 0.5)
-ggsave("figures/SMSE/performance_table.png", g, width = 7, height = 2)
+ggsave("figures/SMSE/performance_table.png", g, width = 7, height = 3.5)
 
 g <- salmonMSE::plot_tradeoff(
-  val_sim %>% filter(variable == "Spawners") %>% select(lwr, median, upr) %>% as.matrix(),
-  val_sim %>% filter(variable == "pWILD") %>% select(lwr, median, upr) %>% as.matrix(),
-  name,
-  factor(rep(1, length(name))),
+  val_sim %>% filter(variable == "Spawners", ref == "grid") %>% select(lwr, median, upr) %>% as.matrix(),
+  val_sim %>% filter(variable == "PNI", ref == "grid") %>% select(lwr, median, upr) %>% as.matrix(),
+  val_sim %>% filter(variable == "Spawners", ref == "grid") %>% pull(Ctarget) %>% factor(),
+  val_sim %>% filter(variable == "Spawners", ref == "grid") %>% pull(pNOB_target) %>% factor(),
   xlab = "Total spawners",
-  ylab = "pWILD",
-  x1lab = "Scenario",
-  x2lab = NULL
+  ylab = "PNI",
+  x1lab = "Catch target",
+  x2lab = "pNOB target"
 ) +
-  guides(shape = "none") +
-  expand_limits(x = 0)
-ggsave("figures/SMSE/tradeoff.png", g, width = 5, height = 3)
+  scale_shape_manual(values = c(1, 4, 16))
+ggsave("figures/SMSE/tradeoff_PNI.png", g, width = 5, height = 3)
