@@ -243,6 +243,10 @@ Historical <- new(
 fry_surv <- read.csv("data/Sarita/fry_surv.csv")
 fry_surv_year <- read.csv("data/Sarita/fry_surv_year.csv")
 
+#g <- ggplot(fry_surv, aes(x, median)) +
+#  geom_line() +
+#  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.5, colour = 'grey80')
+
 #g <- ggplot(fry_surv_year, aes(year, x)) +
 #  geom_point() +
 #  geom_line() +
@@ -252,7 +256,7 @@ fry_surv_year <- read.csv("data/Sarita/fry_surv_year.csv")
 # Average conditions 2017-2023 (x = environmental variable, y = fry/spawner)
 #mean(fry_surv_year$x)
 
-get_eggfry_surv <- function(env_series, seed = 342) {
+get_eggfry_surv <- function(env_series, seed = 342, avg_fec = 3900, p_female = 0.4) {
   set.seed(seed)
 
   fps_sim <- lapply(1:nsim, function(x) {
@@ -265,7 +269,7 @@ get_eggfry_surv <- function(env_series, seed = 342) {
     bind_rows() %>%
     left_join(fry_surv) %>%
     mutate(fps = rlnorm(nrow(.), log(median), sd_lower)) %>%
-    mutate(fpe = fps/3900/Bio@p_female)
+    mutate(fpe = fps/avg_fec/p_female)
 
   return(fps_sim)
 
@@ -276,6 +280,7 @@ sim_surv <- get_eggfry_surv(env_series)
 #fps <- reshape2::acast(sim_surv, list("Simulation", "year"), value.var = "fps")
 fpe <- reshape2::acast(sim_surv, list("Simulation", "year"), value.var = "fpe")
 #matplot(t(fps), typ = 'l')
+#matplot(t(fpe), typ = 'l')
 
 #png("figures/Sarita_envvar.png", height = 4, width = 6, res = 400, units = "in")
 #par(mar = c(5, 4, 1, 1))
