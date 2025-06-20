@@ -81,7 +81,7 @@ Harvest <- new(
   type_PT = "u",
   type_T = "catch",
   u_preterminal = 0.35,
-  K_T = 750, # Will evaluate a grid of 750, 1000, 1250
+  K_T = 1000, # Will evaluate a grid of 750, 1000, 1250
   MSF_PT = FALSE,
   MSF_T = TRUE,
   release_mort = c(0, 0),
@@ -125,7 +125,7 @@ sarita_rel %>%
   summarise(marked = sum(), n = sum(TotalRelease), .by = c(RELEASE_STAGE_NAME, BROOD_YEAR)) %>%
   filter(BROOD_YEAR == 2023)
 
-
+stray <- c(0, 0.11, 0.16, 0.69, 0.04) * 100 # Proportions based on Sarita CWT escapement of traditionals in 2018
 h2 <- EnvStats::rnormTrunc(nsim, 0.25, 0.15, min = 0, max = 0.5)
 Hatchery <- new(
   "Hatchery",
@@ -137,7 +137,7 @@ Hatchery <- new(
   s_egg_subyearling = 1,
   Mjuv_HOS = Mjuv_HOS,
   p_mature_HOS = p_mature_RS,
-  stray_external = matrix(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 100), maxage, 2),
+  stray_external = matrix(c(rep(0, 5), stray), maxage, 2),
   gamma = 0.8,  # HSRG standard, Sarita AHA inputs
   m = 1,
   pmax_esc = 1,
