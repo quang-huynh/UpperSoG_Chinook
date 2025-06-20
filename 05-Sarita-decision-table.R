@@ -2,22 +2,24 @@
 
 library(salmonMSE)
 
-gr <- expand.grid(
-  Ctarget = c(750, 1000, 1250),
-  pNOB_target = c(0.5, 0.75, 1)
-) %>%
-  mutate(scenario = paste(Ctarget, "C, pNOB =", pNOB_target), ref = "grid")
+gr <- local({
 
-g2 <- data.frame(
-  Ctarget = 1000,
-  pNOB_target = 0.5,
-  scenario = c("90% Traditionals", "90% Smalls", "High Surv.", "NoHarv.NoHatch."),
-  ref = "additional"
-)
+  gr <- expand.grid(
+    Ctarget = c(750, 1000, 1250),
+    pNOB_target = c(0.5, 0.75, 1)
+  ) %>%
+    mutate(scenario = paste(Ctarget, "C, pNOB =", pNOB_target), ref = "grid")
 
-gr <- rbind(gr, g2) %>%
-  mutate(scenario = paste0("(", 1:nrow(.), ") ", scenario))
-gr <- gr[-nrow(gr), ]
+  g2 <- data.frame(
+    Ctarget = 1000,
+    pNOB_target = 0.5,
+    scenario = c("90% Traditionals", "90% Smalls", "High Surv.", "HiSurvNoHarvHatch", "NoHarv.NoHatch."),
+    ref = "additional"
+  )
+  gr <- rbind(gr, g2) %>%
+    mutate(scenario = paste0("(", 1:nrow(.), ") ", scenario))
+  gr[-c(13, 14), ]
+})
 
 name <- gr$scenario
 nOM <- nrow(gr)
@@ -196,6 +198,11 @@ NOS <- sapply(SMSE_list, function(x) rowSums(x@NOS[, 1, , y])) %>%
   rename(Simulation = Var1, NOS = value) %>%
   mutate(scenario = name[Var2])
 
+Fitness <- sapply(SMSE_list, function(x) x@fitness[, 1, 1, y]) %>%
+  reshape2::melt() %>%
+  rename(Simulation = Var1, Fitness = value) %>%
+  mutate(scenario = name[Var2])
+
 TS <- sapply(SMSE_list, function(x) {
   TS_a <- x@NOS[, 1, , y] + x@HOS[, 1, , y]
   rowSums(TS_a)
@@ -222,9 +229,9 @@ pHOSeff <- sapply(SMSE_list, function(x) x@pHOS_effective[, , y]) %>%
   rename(Simulation = Var1, pHOSeff = value) %>%
   mutate(scenario = name[Var2])
 
-pNOB <- sapply(SMSE_list, function(x) x@pNOB[, , y]) %>%
+pNOBeff <- sapply(SMSE_list, function(x) x@pNOB[, , y]) %>%
   reshape2::melt() %>%
-  rename(Simulation = Var1, pNOB = value) %>%
+  rename(Simulation = Var1, pNOBeff = value) %>%
   mutate(scenario = name[Var2])
 
 Brood <- sapply(SMSE_list, function(x) x@NOB[, , y] + x@HOB[, , y]) %>%
@@ -262,7 +269,7 @@ P_Smsy85 <- sapply(SMSE_list, function(x, SMSY = 560) {
   mean(val)
 })
 
-val_sim <- list(PNI, NOS, TS, MA, p_wild, Brood, KT, pHOSeff, pNOB) %>%
+val_sim <- list(PNI, NOS, TS, MA, p_wild, Brood, KT, pHOSeff, pNOBeff, Fitness) %>%
   Reduce(left_join, .) %>%
   select(!Var2) %>%
   reshape2::melt(id.vars = c("Simulation", "scenario")) %>%
@@ -341,3 +348,15 @@ g <- salmonMSE::plot_tradeoff(
 ) +
   scale_shape_manual(values = c(1, 4, 16))
 ggsave("figures/SMSE/tradeoff_PNI.png", g, width = 5, height = 3)
+
+# PNI decision table
+PNI_dt <- val_sim %>% filter(variable == "PNI", ref == "grid")
+g <- salmonMSE::plot_decision_table(
+  x = PNI_dt$Ctarget,
+  y = PNI_dt$pNOB_target,
+  z = PNI_dt$median,
+  title = "Median PNI",
+  xlab = "ESSR catch target",
+  ylab = "pNOB target"
+)
+ggsave("figures/SMSE/decisiontable_PNI.png", g, width = 3, height = 3)
