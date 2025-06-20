@@ -9,6 +9,12 @@ g <- expand.grid(
 
 nOM <- nrow(g)
 
+# Additional runs
+gadd <- data.frame(
+  name = c("Traditionals", "Smalls", "HighSurv", "HighSurvNoHarvestNoHatchery", "NoHarvestNoHatchery")
+) %>%
+  mutate(i = 1:nrow(.), OM = nOM + i)
+
 library(snowfall)
 sfInit(TRUE, nOM)
 
@@ -29,18 +35,11 @@ SMSE_list <- sfLapply(1:nrow(g), function(i, g) {
 }, g = g)
 tictoc::toc()
 
-# Additional runs
-gadd <- data.frame(
-  name = c("Traditionals", "Smalls", "HighSurv", "NoHarvestNoHatchery")
-) %>%
-  mutate(i = 1:nrow(.), OM = nOM + i)
-
-
 tictoc::tic()
 SMSE_list <- sfLapply(1:nrow(gadd), function(i, g) {
   require(salmonMSE)
 
-  if (g$name[i] == "HighSurv") {
+  if (grepl("HighSurv", g$name[i])) {
     SOM <- readRDS(file.path("SOM", "SOM_highsurv.rds"))
   } else {
     SOM <- readRDS(file.path("SOM", "SOM_base.rds"))
@@ -50,7 +49,7 @@ SMSE_list <- sfLapply(1:nrow(gadd), function(i, g) {
     SOM@Hatchery@n_yearling <- c(0.1, 0.9) * 500000
   } else if (g$name[i] == "Smalls") {
     SOM@Hatchery@n_yearling <- c(0.9, 0.1) * 500000
-  } else if (g$name[i] == "NoHarvestNoHatchery") {
+  } else if (grepl("NoHarvestNoHatchery", g$name[i])) {
     SOM@Hatchery@n_yearling[] <- 0
     SOM@Hatchery@stray_external[] <- 0
 
