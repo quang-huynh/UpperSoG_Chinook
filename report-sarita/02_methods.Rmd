@@ -16,7 +16,9 @@ The configuration of the operating model is presented below and organized by lif
 Sources for the parameters include the CTC exploitation rate model, Brown et al. Res Doc, as well as the exploitation rate models fitted to various CWT datasets (Appendices \@ref(app:sarita-cwt) and \@ref(app:quinsam-cwt)).
 
 The description below represents the base model, from which subsequent alterations are made.
-One hundred simulations were used per scenario, with a projection period of 50 years. 
+One hundred simulations were used per scenario, with a projection period of 30 years. 
+
+Summary tables of parameters are presented in Tables \@ref(tab:sarita-om-bio) and \@ref(tab:sarita-om-hatch).
 
 ### Spawners
 
@@ -28,9 +30,7 @@ The fecundity at age 2 was set to half of the value of age 3. Most if not all ag
 These spawners can ensure genetic diversity by breeding across brood years. 
 Since this is not a sex-specific model, some assumption of fecundity value is needed in order to carry over breeding success for age 2 spawners. Calculations involving spawner composition, including pWILD, PNI, and pHOS are weighted by age class fecundity.
 
-It is assumed that 40 percent of spawners are female at all age classes (life cycle model, Table 3.3 of Brown et al.).
-
-**Note it is possible to adjust fecundity and proportion females by age class. According to Brown et al. page 24: The average percent of WCVI Chinook spawners that are female at each age is <1% at age two (called ‘jills’—i.e. female jacks), 10% female at age 3, 55% female at age 4, and 80% female at ages 5–7. These averages are based mostly on Robertson Creek Hatchery broodstock and Stamp River deadpitch sampling, but appear to be indicative of most WCVI Chinook populations.**
+Older age classes more predominantly female, where the proportion female is 0.01 at age 2, 0.1 at age 3, 0.55 at age 4, and 0.8 at age 5 (Brown et al.).
 
 A typical value of 0.8 was used for the relative reproductive success of hatchery spawners (Withler et al.).
 
@@ -40,7 +40,7 @@ Egg-fry survival in the natural environment is modeled as a stochastic density-i
 
 For the projection, average historical conditions during 2017--2023 were assumed, corresponding to 60% of days when the mean daily discharge exceeded 5 cubic meters per second. The fry/spawner values were then simulated from a lognormal distribution with the mean and standard deviation obtained in Figure \@ref(fig:env).
 
-The egg-fry survival is converted from fry/spawner assuming an average fecundity of 3900 and a proportion female of 0.4 (Figure \@ref(fig:fry-surv)).
+The egg-fry survival is converted from fry/spawner assuming an average fecundity of 3,900 and a proportion female of 0.4 (Figure \@ref(fig:fry-surv)).
 
 The resulting fry are then divided by life cycle group, which will have different survival rates at age 1 after outmigration (described in Section \@ref(sec:marine-life-stage)). 
 95 percent of the fry as assigned as early-smalls and the rest are late-larges.
@@ -55,15 +55,18 @@ knitr::include_graphics(here::here("figures/Sarita_envvar.png"))
 
 ### Hatchery production of juveniles
 
-Target hatchery releases, by release strategy, are specified by the user. Here, the releases in 2023 with 292,853 fed fry and 288,745 traditionals were used as the annual target. Release strategies differ in maturity rates, described in Section \@ref(sec:maturity).
+Target hatchery releases, by release strategy, are specified by the user. The releases in 2023 with 292,853 fed fry and 288,745 traditionals were used as the annual target. 
+We evaluate hatchery production strategy of 500,000 annual releases with a 50-50 distribution of fed fry and traditionals.
+
+Release strategies differ in maturity rates, described in Section \@ref(sec:maturity).
 
 The mark rate is assumed to be 1.
 
-The mortality rate is 10 percent shortly after release, and releases immediately enter the marine life stage.
+The mortality rate is 10 percent shortly after release. Hatchery releases immediately enter the marine life stage.
 
 ### Marine life stage and preterminal fishery {#sec:marine-life-stage}
 
-The juvenile marine life stage is represented in the model through a matrix through semestral age and time (2 semesters equals one year). 
+The juvenile marine life stage is represented in the model through a matrix that indexes semestral age and time (2 semesters equals one year). 
 
 In the first half of the year, juveniles are vulnerable to the preterminal fishery. 
 The relative vulnerability by age class was stochastically sampled from the posterior distribution in the Sarita exploitation rate model (Appendix \@ref(app:sarita-cwt)) and assumed to be identical for all release strategies and life cycle groups (Figure \@ref(fig:mat-vul)).
@@ -77,7 +80,7 @@ For older fish, the natural mortality is 30% at age 2, 20% at age 3, 10% at age 
 
 ### Maturity and terminal exploitation {#sec:maturity}
 
-CWT escapement indicates that traditionals mature earlier compared to fed fry.
+CWT escapement indicate that traditionals mature earlier compared to fed fry.
 However, the Robertson Creek indicator stock comprises of only traditionals.
 Therefore, the approach was to estimate maturity of fed fry and traditionals from the Quinsam (northern Strait of Georgia) stock, and apply the ratio of differences to the Robertson traditionals to arrive at a hypothesized maturity function for Sarita fed fry (Appendix \@ref(app:quinsam-cwt)).
 
@@ -90,36 +93,85 @@ The age structure of the return is represented separately from the juveniles.
 The return are only present in the second half of the year and are vulnerable to the terminal fishery.
 
 The relative vulnerability by age class was stochastically sampled from the posterior distribution in the Sarita exploitation rate model (Appendix \@ref(app:sarita-cwt)) and assumed to be identical for all release strategies and life cycle groups (Figure \@ref(fig:mat-vul)).
-A constant, annual harvest rate of 0.05 was used (life cycle model, Table 3.3 of Brown et al.) with mark-selective fishing following ESSR practices.
 
-The simplest assumption of no release mortality was used. Therefore, the 0.05 terminal exploitation rate applies to hatchery-origin fish. Natural-origin fish experience no additional mortality.
+An annual catch target of 1,000 fish for the terminal fishery which represents the mark-selective ESSR fishery. 
+
+The simplest assumption of no release mortality was used. Therefore, the realized ESSR exploitation rate applies to hatchery-origin fish only. Natural-origin fish experience no additional mortality.
 
 ```{r mat-vul, out.width="4in", fig.cap="Maturity by hatchery release strategy and fishery vulnerability at age (identical for all fish) in the operating model. Natural-origin fish have the same maturity as fed fry."}
 knitr::include_graphics(here::here("figures/SMSE/maturity_vul.png"))
 ```
 
-#### Escapement and broodtake
+### Escapement and broodtake
 
 After the terminal fishery, the escapement is represented in a third matrix.
-Each year, an additional 100 hatchery strays return (all age 5).
+Each year, an additional 100 hatchery strays, external to the system, also return. 
+It is assumed that they are unmarked.
+The age proportion of strays correspond to values observed in the Sarita CWT for traditionals in 2018, assuming it is representative of strays from adjacent systems (11 percent at age 2, 16% at age 3, 69% at age 4, and 4% at age 5).
+
 Additional mortality can be applied en-route to spawning grounds and the hatchery, but currently en-route survival is one.
 
-The escapement is then reduced by broodtake to arrive at the number of spawners.
-100 percent of the total escapement can be used as broodtake. 
+The number of spawners is the escapement after brood removals.
+100 percent of the total escapement can be used as broodtake.
+All hatchery origin escapement that is not taken as brood or as ESSR catch continue to spawn.
 
-75 percent of the hatchery escapement return to the hatchery, i.e., removed from the spawning component and available as broodtake, and the remaining 25 percent are spawners.
-
-The broodtake is calculated as the number of spawners required to achieve the target egg production (target releases divided by 85 percent broodtake survival in the hatchery). 
-
-The ratio of unmarked and marked broodtake matches the target pNOB set to 0.11 (M. Thom, pers. comm. via AHA spreadsheets). 
-
+The broodtake is calculated as the number of spawners required to achieve the target egg production (target releases divided by 85 percent broodtake survival in the hatchery). The ratio of unmarked and marked broodtake matches the target pNOB, which is set to 0.50. 
 The age proportions of the broodtake is proportional to the underlying escapement.
 
-No fitness parameters are currently modeled but can be informed by Withler et al.
+In salmonMSE, the effective pNOB is weighted by age class fecundity while the nominal pNOB is calculated from abundance only. 
+The realized effective pNOB can differ from the nominal target value for two reasons. 
+First, there can be differences in the age distribution of hatchery and natural escapement. For example, hatchery origin fish is younger and less fecund, leading to a higher effective pNOB than the nominal pNOB. 
+Second, there may be insufficient natural escapement to achieve the pNOB target.
+Currently, a maximum of 50% of the natural escapement can be used as brood.
+
+### Fitness
+
+Hatchery-origin spawners can alter the evolutionary fitness of the spawning population in the natural environment. 
+The quantitative genetics component of the model calculates fitness of each brood year based on the parental origin (Ford 2002).
+The parameters for the fitness model are primarily informed by Withler et al. (2018).
+
+The population phenotype that is altered by genetic introgression of hatchery spawners is modeled as a Gaussian random variable `z`, with an optimum at 100 in the natural environment and 80 in the hatchery environment. The variance of the phenotype is 10. 
+
+The mean phenotype of a brood year is calculated iteratively from the mean phenotype from parental spawners, accounting for mixed-brood year returns and parental origin, the fitness variance, and the heritability of the phenotype.
+Fitness is a cost function calculated from the deviation of the mean phenotype of spawners from the optimum of the natural environment.
+
+The fitness variance is 100. Heritability $h^2$ is stochastic, sampled from a truncated normal distribution with mean of 0.25, standard deviation of 0.15, with bounds of 0 and 0.5.
+
+The equations of Ford (2002) are modified to account for mixed-brood year return, as documented on the [salmonMSE](https://docs.salmonmse.com/articles/equations.html#mixed-brood-year-return) website.
+
+\newpage
+
+```{r sarita-om-bio, results="as-is"}
+sarita_table_bio <- readr::read_csv(here::here("tables/sarita-om.csv")) %>%
+  filter(Type != "Hatchery") %>%
+  select(!Type)
+
+csasdown::csas_table(
+  sarita_table_bio,
+  caption = "Biology, habitat, and harvest parameters."
+) %>%
+  kableExtra::column_spec(c(1, 2), width = "3in")
+```
+
+\newpage
+
+```{r sarita-om-hatchery, results="as-is"}
+sarita_table_hatch <- readr::read_csv(here::here("tables/sarita-om.csv")) %>%
+  filter(Type == "Hatchery") %>%
+  select(!Type)
+
+csasdown::csas_table(
+  sarita_table_hatch,
+  caption = "Hatchery and fitness parameters."
+) %>%
+  kableExtra::column_spec(c(1, 2), width = "3in")
+```
 
 ## Scenarios
 
-Five scenarios were included in the June 2nd presentation:
+A reference grid was developed from three ESSR catch targets (750, 1000, and 1250) and three target pNOB values (0.5, 0.75, and 1.00) in a factorial combination, leading to nine (9) scenarios.
+
+Additional sensitivity scenarios were 
 
 1. Base scenario, as described in Section \@ref(sec:om)
 2. 90% Fed Fry – 10% Traditionals, instead of 50-50% in the base
@@ -127,4 +179,10 @@ Five scenarios were included in the June 2nd presentation:
 4. High fry/spawner (wet autumns). Assume mean environmental variable of 80% days in October with high daily discharge (compared to 60%)
 5. High pNOB target = 0.5 (compared to 0.11)
 
+## Performance metrics
+
+To evaluate and facilitate comparison among alternative management options, the following performance metrics were calculated for the system dynamics at the end of the projection:
+
+1. 
+2. 
 

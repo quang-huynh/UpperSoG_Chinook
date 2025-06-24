@@ -19,6 +19,8 @@ matt_avg <- sapply(matt_dev, function(x) {
   apply(x$matt[seq(9, 14), , ], 2:3, mean)
 }, simplify = "array")
 
+#apply(matt_avg, 1:2, mean)
+
 set.seed(24)
 sim_samp <- sample(seq(1, length(report_RBT)), nsim)
 
@@ -69,6 +71,9 @@ Bio <- new(
 ### Harvest, fishery vulnerability ----
 vulPT <- sapply(report_RBT[sim_samp], getElement, "vulPT")
 vulT <- sapply(report_RBT[sim_samp], getElement, "vulT")
+
+#sapply(report_RBT, getElement, "vulPT") %>% apply(1, mean)
+#sapply(report_RBT, getElement, "vulT") %>% apply(1, mean)
 
 #matplot(vulPT, typ = 'l')
 #matplot(vulT, typ = 'l')
@@ -256,7 +261,7 @@ fry_surv_year <- read.csv("data/Sarita/fry_surv_year.csv")
 # Average conditions 2017-2023 (x = environmental variable, y = fry/spawner)
 #mean(fry_surv_year$x)
 
-get_eggfry_surv <- function(env_series, seed = 342, avg_fec = 3900, p_female = 0.4) {
+get_eggfry_surv <- function(env_series, seed = 342, avg_fec = 3900, p_female = 0.4, nsim = 100) {
   set.seed(seed)
 
   fps_sim <- lapply(1:nsim, function(x) {
@@ -276,7 +281,7 @@ get_eggfry_surv <- function(env_series, seed = 342, avg_fec = 3900, p_female = 0
 }
 env_series <- rep(60, proyears)
 
-sim_surv <- get_eggfry_surv(env_series)
+sim_surv <- get_eggfry_surv(env_series, nsim = nsim)
 #fps <- reshape2::acast(sim_surv, list("Simulation", "year"), value.var = "fps")
 fpe <- reshape2::acast(sim_surv, list("Simulation", "year"), value.var = "fpe")
 #matplot(t(fps), typ = 'l')

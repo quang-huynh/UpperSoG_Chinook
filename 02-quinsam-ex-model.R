@@ -293,9 +293,9 @@ g <- salmonMSE:::CM_maturity(
 ggsave("figures/Sarita_maturity.png", g, height = 5.5, width = 6)
 
 # Take average from last 6 complete brood years
-#matt_avg <- sapply(matt_Sarita, function(x) {
-#  apply(x$matt[seq(9, 14), , ], 2:3, mean)
-#}, simplify = "array")
+matt_avg <- sapply(matt_Sarita, function(x) {
+  apply(x$matt[seq(9, 14), , ], 2:3, mean)
+}, simplify = "array")
 
 #g <- reshape2::melt(matt_avg) %>%
 #  rename(Maturity = value) %>%
