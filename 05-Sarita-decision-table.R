@@ -13,7 +13,7 @@ gr <- local({
   g2 <- data.frame(
     Ctarget = 1000,
     pNOB_target = 0.5,
-    scenario = c("90% Traditionals", "90% Smalls", "High Surv.", "HiSurvNoHarvHatch", "NoHarv.NoHatch."),
+    scenario = c("90% Traditionals from (2)", "90% Fed Fry from (2)", "High Surv. from (2)", "HiSurvNoHarvHatch", "NoHarv.NoHatch."),
     ref = "additional"
   )
   gr <- rbind(gr, g2) %>%
@@ -256,7 +256,7 @@ KT <- sapply(SMSE_list, function(x) {
   return(K)
 }) %>%
   reshape2::melt() %>%
-  rename(Simulation = Var1, `Catch Term.` = value) %>%
+  rename(Simulation = Var1, `ESSR Catch` = value) %>%
   mutate(scenario = name[Var2])
 
 P_Sgen <- sapply(SMSE_list, function(x, Sgen = 250) {
@@ -269,30 +269,39 @@ P_Smsy85 <- sapply(SMSE_list, function(x, SMSY = 560) {
   mean(val)
 })
 
-val_sim <- list(PNI, NOS, TS, MA, p_wild, Brood, KT, pHOSeff, pNOBeff, Fitness) %>%
+val_sim <- list(PNI, #NOS,
+                TS, pHOSeff, p_wild, MA, Fitness, Brood, KT, pNOBeff) %>%
   Reduce(left_join, .) %>%
   select(!Var2) %>%
   reshape2::melt(id.vars = c("Simulation", "scenario")) %>%
   summarise(m = mean(value),
             median = median(value, na.rm = TRUE),
-            lwr = quantile(value, 0.025, na.rm = TRUE),
-            upr = quantile(value, 0.975, na.rm = TRUE),
+            lwr = quantile(value, 0.25, na.rm = TRUE),
+            upr = quantile(value, 0.75, na.rm = TRUE),
             .by = c(scenario, variable)) %>%
   left_join(gr, by = "scenario") %>%
   mutate(scenario = factor(scenario, rev(name)))
 
-g <- val_sim %>%
-  ggplot(aes(scenario, median, ymin = lwr, ymax = upr, shape = factor(Ctarget), colour = factor(pNOB_target))) +
-  facet_wrap(vars(variable), scales = "free_x", strip.position = "top") +
-  geom_point() +
-  geom_linerange() +
-  coord_flip() +
+
+plot_dotplot <- function(val_sim) {
+  g <- val_sim %>%
+    ggplot(aes(scenario, median, ymin = lwr, ymax = upr, shape = factor(Ctarget), colour = factor(pNOB_target))) +
+    facet_wrap(vars(variable), scales = "free_x", strip.position = "top") +
+    geom_point() +
+    geom_linerange() +
+    coord_flip()
+
+  g
+}
+g <- plot_dotplot(val_sim) +
   scale_shape_manual(values = c(1, 4, 16)) +
   #theme(strip.placement = "outside") +
   theme(legend.position = "bottom") +
   guides(colour = guide_legend(ncol = 1), shape = guide_legend(ncol = 1)) +
   labs(x = NULL, y = NULL, shape = "Catch target", colour = "pNOB target")
-ggsave("figures/SMSE/performance_metrics.png", g, width = 7, height = 7)
+ggsave("figures/SMSE/performance_metrics.png", g, width = 6, height = 7)
+
+
 
 val_prob <- data.frame(
   scenario = name,
@@ -304,37 +313,49 @@ val_prob <- data.frame(
 
 d <- val_sim %>%
   select(scenario, variable, median) %>%
-  rbind(val_prob) %>%
-  mutate(txt = signif(median, 3)) %>%
-  mutate(val_rel = median/max(median),
-         val_0_1 = (median - min(median)) / (max(median) - min(median)),
-         .by = variable)
+  rbind(val_prob)
 
-padding <- 0.52
-g <- ggplot(d, aes(variable, scenario)) +
-  geom_tile(aes(fill = val_rel), alpha = 0.6, color = "white") +
-  geom_text(aes(label = txt), size = ggplot2::rel(3)) +
-  guides(fill = "none") +
-  labs(x = NULL, y = NULL) +
-  coord_cartesian(
-    expand = FALSE,
-    xlim = range(as.numeric(d$variable)) + c(-padding, padding),
-    ylim = range(as.numeric(d$scenario)) + c(-padding - 0.01, padding + 0.01)
-  ) +
-  theme(
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.border = element_blank(),
-    axis.ticks.x = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.text.x = element_text(color = "grey10", angle = 90),
-    strip.placement = "outside",
-    strip.background = element_blank()
-  ) +
-  scale_x_discrete(position = "top") +
-  scale_y_discrete(labels = levels(d$scenario)) +
-  scale_fill_gradient2(low = "deeppink", high = "green4", mid = "white", limits = c(0, 1), midpoint = 0.5)
-ggsave("figures/SMSE/performance_table.png", g, width = 7, height = 3.5)
+plot_table <- function(df, padding = 0.52) {
+
+  d <- df %>%
+    mutate(txt = signif(median, 3)) %>%
+    mutate(val_rel = median/max(median),
+           val_0_1 = (median - min(median)) / (max(median) - min(median)),
+           .by = variable)
+
+  g <- ggplot(d, aes(variable, scenario)) +
+    geom_tile(aes(fill = val_rel), alpha = 0.6, color = "white") +
+    geom_text(aes(label = txt), size = ggplot2::rel(3)) +
+    guides(fill = "none") +
+    labs(x = NULL, y = NULL) +
+    coord_cartesian(
+      expand = FALSE,
+      xlim = range(as.numeric(d$variable)) + c(-padding, padding),
+      ylim = range(as.numeric(d$scenario)) + c(-padding - 0.01, padding + 0.01)
+    ) +
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.border = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.text.x = element_text(color = "grey10", angle = 90),
+      strip.placement = "outside",
+      strip.background = element_blank()
+    ) +
+    scale_x_discrete(position = "top") +
+    scale_y_discrete(labels = levels(d$scenario)) +
+    scale_fill_gradient2(low = "deeppink", high = "green4", mid = "white", limits = c(0, 1), midpoint = 0.5)
+  g
+}
+g <- plot_table(d)
+ggsave("figures/SMSE/performance_table_full.png", g, width = 7, height = 3.5)
+
+d_sens <- d %>%
+  filter(!variable %in% c("P_250", "P_476"), scenario %in% name[c(2, 10:12)]) %>%
+  mutate(scenario = factor(scenario, levels = rev(name[c(2, 10:12)])))
+g <- plot_table(d_sens)
+ggsave("figures/SMSE/performance_table_sens.png", g, width = 5.5, height = 2)
 
 g <- salmonMSE::plot_tradeoff(
   val_sim %>% filter(variable == "Spawners", ref == "grid") %>% select(lwr, median, upr) %>% as.matrix(),

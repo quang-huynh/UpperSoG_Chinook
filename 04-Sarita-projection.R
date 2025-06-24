@@ -11,7 +11,7 @@ nOM <- nrow(g)
 
 # Additional runs
 gadd <- data.frame(
-  name = c("Traditionals", "Smalls", "HighSurv", "HighSurvNoHarvestNoHatchery", "NoHarvestNoHatchery")
+  name = c("Traditionals", "Fed Fry", "HighSurv", "HighSurvNoHarvestNoHatchery", "NoHarvestNoHatchery")
 ) %>%
   mutate(i = 1:nrow(.), OM = nOM + i)
 
@@ -47,7 +47,7 @@ SMSE_list <- sfLapply(1:nrow(gadd), function(i, g) {
 
   if (g$name[i] == "Traditionals") {
     SOM@Hatchery@n_yearling <- c(0.1, 0.9) * 500000
-  } else if (g$name[i] == "Smalls") {
+  } else if (g$name[i] == "Fed Fry") {
     SOM@Hatchery@n_yearling <- c(0.9, 0.1) * 500000
   } else if (grepl("NoHarvestNoHatchery", g$name[i])) {
     SOM@Hatchery@n_yearling[] <- 0
