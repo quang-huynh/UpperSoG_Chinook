@@ -360,15 +360,15 @@ ggsave("figures/SMSE/performance_table_sens.png", g, width = 5.5, height = 2)
 g <- salmonMSE::plot_tradeoff(
   val_sim %>% filter(variable == "Spawners", ref == "grid") %>% select(lwr, median, upr) %>% as.matrix(),
   val_sim %>% filter(variable == "PNI", ref == "grid") %>% select(lwr, median, upr) %>% as.matrix(),
-  val_sim %>% filter(variable == "Spawners", ref == "grid") %>% pull(Ctarget) %>% factor(),
   val_sim %>% filter(variable == "Spawners", ref == "grid") %>% pull(pNOB_target) %>% factor(),
+  val_sim %>% filter(variable == "Spawners", ref == "grid") %>% pull(Ctarget) %>% factor(),
   xlab = "Total spawners",
   ylab = "PNI",
-  x1lab = "Catch target",
-  x2lab = "pNOB target"
+  x1lab = "pNOB target",
+  x2lab = "Catch target"
 ) +
-  scale_shape_manual(values = c(1, 4, 16))
-ggsave("figures/SMSE/tradeoff_PNI.png", g, width = 5, height = 3)
+  scale_shape_manual(values = c(1, 4, 16), size = 4)
+ggsave("figures/SMSE/tradeoff_PNI.png", g, width = 4.5, height = 3)
 
 # PNI decision table
 PNI_dt <- val_sim %>% filter(variable == "PNI", ref == "grid")
