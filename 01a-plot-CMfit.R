@@ -24,15 +24,22 @@ ggsave("figures/Sarita_spawners.png", g, height = 3, width = 5)
 # Plot F
 g1 <- salmonMSE:::CM_F(report, year1 = 1979)
 g2 <- salmonMSE:::CM_F(report, PT = FALSE, year1 = 1979)
+g <- ggpubr::ggarrange(g1, g2, ncol = 1)
+ggsave("figures/Sarita_F.png", g, height = 6, width = 4)
 
-g3 <- salmonMSE:::CM_CYER(report, type = "PT", year1 = 1979, at_age = FALSE)
-g4 <- salmonMSE:::CM_CYER(report, type = "T", year1 = 1979, at_age = FALSE)
+g1$data %>% filter(Year %in% 2016:2020) %>% mutate(u = 1 - exp(-`50%`)) # Preterminal exploitation rate
+g2$data %>% filter(Year %in% 2016:2020) %>% mutate(u = 1 - exp(-`50%`)) # Terminal exploitation rate
 
-g5 <- salmonMSE:::CM_BYER(report, type = "PT", year1 = 1979, at_age = FALSE)
-g6 <- salmonMSE:::CM_BYER(report, type = "T", year1 = 1979, at_age = FALSE)
 
-g7 <- salmonMSE:::CM_CYER(report, type = "all", year1 = 1979, at_age = FALSE)
-g8 <- salmonMSE:::CM_BYER(report, type = "all", year1 = 1979, at_age = FALSE)
+# Exploitation rate
+g3 <- salmonMSE:::CM_ER(report, brood = FALSE, type = "PT", year1 = 1979, at_age = FALSE)
+g4 <- salmonMSE:::CM_ER(report, brood = FALSE, type = "T", year1 = 1979, at_age = FALSE)
+
+g5 <- salmonMSE:::CM_ER(report, brood = TRUE, type = "PT", year1 = 1979, at_age = FALSE)
+g6 <- salmonMSE:::CM_ER(report, brood = TRUE, type = "T", year1 = 1979, at_age = FALSE)
+
+g7 <- salmonMSE:::CM_ER(report, brood = FALSE, type = "all", year1 = 1979, at_age = FALSE)
+g8 <- salmonMSE:::CM_ER(report, brood = TRUE, type = "all", year1 = 1979, at_age = FALSE)
 
 #g <- ggpubr::ggarrange(g1, g2, g3, g4, g5, g6, g7, g8, ncol = 2, nrow = 4,
 #                       labels = paste0("(", 1:8, ")"))
