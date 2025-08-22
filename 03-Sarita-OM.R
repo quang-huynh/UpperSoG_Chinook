@@ -84,11 +84,11 @@ vulT <- sapply(report_RBT[sim_samp], getElement, "vulT")
 Harvest <- new(
   "Harvest",
   type_PT = "u",
-  type_T = "catch",
-  u_preterminal = 0.35,
-  K_T = 1000, # Will evaluate a grid of 750, 1000, 1250
+  type_T = "u",
+  u_preterminal = 0.45,
+  u_terminal = 0.66,
   MSF_PT = FALSE,
-  MSF_T = TRUE,
+  MSF_T = FALSE,
   release_mort = c(0, 0),
   vulPT = t(vulPT),
   vulT = t(vulT)
@@ -135,7 +135,7 @@ h2 <- EnvStats::rnormTrunc(nsim, 0.25, 0.15, min = 0, max = 0.5)
 Hatchery <- new(
   "Hatchery",
   n_r = n_r,
-  n_yearling = c(0.5, 0.5) * 500000, # Sarita smalls and traditionals in 2023
+  n_yearling = c(335000, 165000), # Sarita smalls and traditionals
   n_subyearling = c(0, 0),
   s_prespawn = 0.85,  # Hatchery data, Sarita AHA inputs (Sarita CN AHA inputs.xlsx)
   s_egg_smolt = 0.9,  # Assumed 10 percent mortality shortly after release
@@ -148,8 +148,8 @@ Hatchery <- new(
   pmax_esc = 1,
   pmax_NOB = 0.50,     # SEP guideline, suggested by Lian
   ptarget_NOB = 0.50,  # Hatchery data, Sarita AHA inputs, will evaluate a grid of 50, 75, 100 percent
-  phatchery = NA,      # Hatchery escapement (not used for brood) will spawn
-  premove_HOS = 0,     # Set to zero for now, Sarita AHA inputs use 21 percent
+  phatchery = 0.5,     # Stand-in for ESSR fishery with HOS exploitation rates of 0.5, 0.75, or 1
+  premove_HOS = 0,
   fec_brood = fec, #rep(3625, maxage) is used from Hatchery data, Sarita AHA input
   fitness_type = c("Ford", "none"),
   theta = c(100, 80),
@@ -325,3 +325,76 @@ SOM2 <- SOM
 SOM2@Habitat@fry_sdev <- fpe2
 saveRDS(SOM2, "SOM/SOM_highsurv.rds")
 
+
+# Scenario with declining maturity
+# Get posterior medians
+# Do regression vs time (since 1990-2021)
+# Apply slope through projection
+
+#g <- salmonMSE:::CM_maturity(report_RBT, salmonMSE:::get_CMdata(ERM_Sarita@.MISC$CMfit), year1 = 1979, brood = FALSE)
+
+matt_med <- sapply(report_RBT, getElement, "matt", simplify = "array") %>%
+  qlogis() %>%
+  apply(c(1:2), median)
+#c(1990, 2018) - 1979 + 1
+#matplot(matt_med[seq(12, 40), ], typ = 'l')
+
+matt_slope <- matt_med[seq(12, 40), ] %>%
+  reshape2::melt() %>%
+  rename(Year = Var1, Age = Var2) %>%
+  filter(is.finite(value)) %>%
+  summarise(slope = lm(value ~ Year) %>% coef() %>% getElement(2), .by = Age)
+
+SOM3 <- SOM
+for (i in matt_slope$Age) {
+  matt_i <- matrix(qlogis(SOM3@Bio@p_mature[, i, SOM@nyears]), SOM@nsim, SOM@proyears)
+  for (y in 2:SOM@proyears) {
+    matt_i[, y] <- matt_i[, 1] + matt_slope$slope[matt_slope$Age == i] * y
+  }
+  SOM3@Bio@p_mature[, i, SOM@nyears + seq(1, SOM@proyears)] <- plogis(matt_i)
+
+  for (r in SOM3@Hatchery@n_r) {
+
+    matt_i <- matrix(qlogis(SOM3@Hatchery@p_mature_HOS[, i, SOM@nyears, r]), SOM@nsim, SOM@proyears)
+    for (y in 2:SOM@proyears) {
+      matt_i[, y] <- matt_i[, 1] + matt_slope$slope[matt_slope$Age == i] * y
+    }
+    SOM3@Hatchery@p_mature_HOS[, i, SOM@nyears + seq(1, SOM@proyears), r] <- plogis(matt_i)
+  }
+
+}
+saveRDS(SOM3, "SOM/SOM_declinemat.rds")
+
+
+# Make figure of maturity
+if (FALSE) {
+
+  matt_new <- lapply(1:length(sim_samp), function(x) {
+    out <- report_RBT[[sim_samp[x]]]["matt"]
+    matt_proj <- SOM@Hatchery@p_mature_HOS[x, , SOM3@nyears + seq(1, SOM3@proyears), 2] %>%
+      t() %>%
+      array(c(SOM3@proyears, maxage, 1))
+    out$matt <- abind::abind(out$matt, matt_proj, along = 1)
+    return(out)
+  })
+  g1 <- salmonMSE:::CM_maturity(matt_new, salmonMSE:::get_CMdata(ERM_Sarita@.MISC$CMfit), year1 = 1979, brood = TRUE) +
+    ggtitle("Constant maturity (2013-2018 average)") +
+    labs(y = "Traditionals maturity")
+
+
+  matt_new <- lapply(1:length(sim_samp), function(x) {
+    out <- report_RBT[[sim_samp[x]]]["matt"]
+    matt_proj <- SOM3@Hatchery@p_mature_HOS[x, , SOM3@nyears + seq(1, SOM3@proyears), 2] %>%
+      t() %>%
+      array(c(SOM3@proyears, maxage, 1))
+    out$matt <- abind::abind(out$matt, matt_proj, along = 1)
+    return(out)
+  })
+  g2 <- salmonMSE:::CM_maturity(matt_new, salmonMSE:::get_CMdata(ERM_Sarita@.MISC$CMfit), year1 = 1979, brood = TRUE) +
+    ggtitle("Declining maturity (1990-2018 trend)") +
+    labs(y = "Traditionals maturity")
+
+  g <- ggpubr::ggarrange(g1, g2, ncol = 1, common.legend = TRUE, legend = "right")
+  ggsave("figures/SMSE/Sarita_proj_maturity.png", g, height = 6, width = 6)
+
+}
