@@ -1,9 +1,9 @@
 
 
-# First, create grid of pNOB target and terminal catch target
+# First, create grid of pNOB target and ESSR exploitation rate target
 # Default is Catch target of 1000 and pNOB = 0.5
 g <- expand.grid(
-  Ctarget = c(750, 1000, 1250),
+  ESSR_ER = c(0.5, 0.75, 1),
   pNOB_target = c(0.5, 0.75, 1)
 )
 
@@ -11,7 +11,9 @@ nOM <- nrow(g)
 
 # Additional runs
 gadd <- data.frame(
-  name = c("Traditionals", "Fed Fry", "HighSurv", "HighSurvNoHarvestNoHatchery", "NoHarvestNoHatchery")
+  name = c("Traditionals", "Fed Fry",
+           "HighSurv", "HighSurvNoHarvestNoHatchery", "NoHarvestNoHatchery",
+           "DensityDependence", "DeclineMaturity")
 ) %>%
   mutate(i = 1:nrow(.), OM = nOM + i)
 
@@ -25,7 +27,7 @@ SMSE_list <- sfLapply(1:nrow(g), function(i, g) {
 
   SOM <- readRDS(file.path("SOM", "SOM_base.rds"))
   SOM@Hatchery@ptarget_NOB <- g$pNOB_target[i]
-  SOM@Harvest@K_T <- g$Ctarget[i]
+  SOM@Hatchery@phatchery <- g$ESSR_ER[i]
   SMSE <- salmonMSE(SOM)
 
   saveRDS(SMSE, file = file.path("SMSE", paste0("Sarita", i, ".rds")))
@@ -53,13 +55,20 @@ SMSE_list <- sfLapply(1:nrow(gadd), function(i, g) {
     SOM@Hatchery@n_yearling[] <- 0
     SOM@Hatchery@stray_external[] <- 0
 
-    SOM@Harvest@u_preterminal <- 1e-8
-    SOM@Harvest@K_T <- 1e-8
-    SOM@Harvest@MSF_T <- FALSE
+    SOM@Harvest@u_preterminal <-
+      SOM@Harvest@u_terminal <- 1e-8
+
+  } else if (g$name[i] == "DensityDependence") {
+
+    SOM@Habitat@prespawn_rel <- "HS"
+    SOM@Habitat@prespawn_prod <- 1
+    SOM@Habitat@prespawn_capacity <- 1300
+
+  } else if (g$name[i] == "DeclineMaturity") {
+    SOM <- readRDS(file.path("SOM", "SOM_declinemat.rds"))
   }
 
   SMSE <- salmonMSE(SOM)
-
   saveRDS(SMSE, file = file.path("SMSE", paste0("Sarita", g$OM[i], ".rds")))
 
   invisible()
