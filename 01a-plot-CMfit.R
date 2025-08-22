@@ -27,8 +27,8 @@ g2 <- salmonMSE:::CM_F(report, PT = FALSE, year1 = 1979)
 g <- ggpubr::ggarrange(g1, g2, ncol = 1)
 ggsave("figures/Sarita_F.png", g, height = 6, width = 4)
 
-g1$data %>% filter(Year %in% 2016:2020) %>% mutate(u = 1 - exp(-`50%`)) # Preterminal exploitation rate
-g2$data %>% filter(Year %in% 2016:2020) %>% mutate(u = 1 - exp(-`50%`)) # Terminal exploitation rate
+g1$data %>% filter(Year %in% 2016:2020) %>% mutate(u = 1 - exp(-`50%`)) %>% pull(u) %>% mean() # Preterminal exploitation rate
+g2$data %>% filter(Year %in% 2016:2020) %>% mutate(u = 1 - exp(-`50%`)) %>% pull(u) %>% mean() # Terminal exploitation rate
 
 
 # Exploitation rate
