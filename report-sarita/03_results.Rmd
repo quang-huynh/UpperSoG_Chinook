@@ -2,6 +2,28 @@
 
 See [Powerpoint](https://docs.google.com/presentation/d/11kjoLct44oaPhTa6U1NGXniin7DPAls9/edit?usp=sharing&ouid=110611304283721893731&rtpof=true&sd=true) presentation.
 
+
+(ref:fig-pf) Table of performance measures reporting outcomes at the end of the projection for reference scenarios (1-9, above dotted horizontal line) and sensitivity scenarios (10-14), with primary metrics left of the dashed vertical black line. Table cells report medians for all metrics except P_250 and P_476 which report probabilities. Each column is colour-coded with magenta representing zero, green the maximium value of each metric, and white representing half of the maximum. Total spawners, Brood, ESSR catch, and escapement are in units of abundance (> 0), mean age is in units of years (between 2--5), and all others are proportions/probabilities between 0--1.
+
+```{r pf, fig.cap="(ref:fig-pf)"}
+knitr::include_graphics(here::here("figures/SMSE/performance_table_full.png"))
+```
+
+(ref:fig-pf-sens) Subset of performance measures reporting outcomes at the end of the projection for sensitivity scenarios (10-14), which are based off of scenario (1). For more details, see caption of Figure \@ref(fig:pf).
+
+```{r pf-sens, fig.cap="(ref:fig-pf-sens)"}
+knitr::include_graphics(here::here("figures/SMSE/performance_table_sens.png"))
+```
+
+```{r pf-primary, fig.cap="Line and dot figure of the primary performance measures (panels) reporting outcomes. Medians are denoted in points and the lines span the 95% interval of values among simulations in each scenario. Colours denote the pNOB target and shapes denote the ESSR ER (exploitation rate). Total spawners, Brood, ESSR catch, and escapement are in units of abundance (> 0), mean age is in units of years (between 2--5), egg production is in millions, and all others are proportions/probabilities between 0--1."}
+knitr::include_graphics(here::here("figures/SMSE/performance_metrics_primary.png"))
+```
+
+
+```{r pf-ancillary, fig.cap="Line and dot figure of the ancillary performance measures (panels) reporting outcomes. Medians are denoted in points and the lines span the 95% interval of values among simulations in each scenario. Colours denote the pNOB target and shapes denote the ESSR ER (exploitation rate). Brood, ESSR catch, and escapement are in units of abundance (> 0), mean age is in units of years (between 2--5), egg production is in millions, and all others are proportions/probabilities between 0--1."}
+knitr::include_graphics(here::here("figures/SMSE/performance_metrics_ancillary.png"))
+```
+
 # Discussion
 
 TBD

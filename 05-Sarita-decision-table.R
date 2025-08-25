@@ -60,6 +60,8 @@ dev.off()
 
   if (var == "Brood") {
     out <- apply(SMSE@NOB + SMSE@HOB, 3, quantile, c(0.025, 0.5, 0.975))
+  } else if (var == "Egg") {
+    out <- apply(SMSE@Egg_NOS + SMSE@Egg_HOS, 3, quantile, c(0.025, 0.5, 0.975))
   } else {
     out <- plot_statevar_ts(SMSE, var, figure = FALSE, quant = TRUE)
   }
@@ -84,21 +86,15 @@ ts_fn <- function(SMSE_list, name, var) {
 }
 
 
-g1 <- ts_fn(SMSE_list, name, var = "Total Spawners") +
+g1 <- ts_fn(SMSE_list, name, var = "PNI")
+
+g2 <- ts_fn(SMSE_list, name, var = "Total Spawners") +
   coord_cartesian(ylim = c(0, 2000)) +
   guides(colour = guide_legend(ncol = 2), fill = guide_legend(ncol = 2))
 
-g2 <- ts_fn(SMSE_list, name, var = "pHOS_effective") +
+g3 <- ts_fn(SMSE_list, name, var = "pHOS_effective") +
   coord_cartesian(ylim = c(0, 1)) +
   labs(y = expression(pHOS[eff]))
-
-#g2 <- ts_fn(SMSE_list, name, var = "NOS") +
-#  coord_cartesian(ylim = c(0, 5000))
-
-#g2 <- ts_fn(SMSE_list, name, var = "HOS") +
-#  coord_cartesian(ylim = c(0, 3000))
-
-g3 <- ts_fn(SMSE_list, name, var = "PNI")
 
 g4 <- ts_fn(SMSE_list, name, var = "p_wild") +
   coord_cartesian(ylim = c(0, 1)) +
@@ -109,6 +105,10 @@ g5 <- ts_fn(SMSE_list, name, var = "Brood") +
 
 g6 <- ts_fn(SMSE_list, name, var = "pNOB") +
   coord_cartesian(ylim = c(0, 1))
+
+g7 <- ts_fn(SMSE_list, name, var = "Egg") +
+  coord_cartesian(ylim = c(0, 2e6)) +
+  labs(x = "Egg production")
 
 g <- ggpubr::ggarrange(g1, g2, g3, g4, g5, g6, ncol = 2, nrow = 3, common.legend = TRUE, legend = "bottom")
 ggsave("figures/SMSE/ts.png", g, height = 7, width = 6)
@@ -236,15 +236,15 @@ PNI <- sapply(SMSE_list, function(x) x@PNI[, 1, y]) %>%
   reshape2::melt() %>%
   rename(Simulation = Var1, PNI = value) %>%
   mutate(scenario = name[Var2])
-NOS <- sapply(SMSE_list, function(x) rowSums(x@NOS[, 1, , y])) %>%
-  reshape2::melt() %>%
-  rename(Simulation = Var1, NOS = value) %>%
-  mutate(scenario = name[Var2])
+#NOS <- sapply(SMSE_list, function(x) rowSums(x@NOS[, 1, , y])) %>%
+#  reshape2::melt() %>%
+#  rename(Simulation = Var1, NOS = value) %>%
+#  mutate(scenario = name[Var2])
 
-Fitness <- sapply(SMSE_list, function(x) x@fitness[, 1, 1, y]) %>%
-  reshape2::melt() %>%
-  rename(Simulation = Var1, Fitness = value) %>%
-  mutate(scenario = name[Var2])
+#Fitness <- sapply(SMSE_list, function(x) x@fitness[, 1, 1, y]) %>%
+#  reshape2::melt() %>%
+#  rename(Simulation = Var1, Fitness = value) %>%
+#  mutate(scenario = name[Var2])
 
 TS <- sapply(SMSE_list, function(x) {
   TS_a <- x@NOS[, 1, , y] + x@HOS[, 1, , y]
@@ -309,9 +309,24 @@ P_Smsy85 <- sapply(SMSE_list, function(x, SMSY = 560) {
   mean(val)
 })
 
+Egg <- sapply(SMSE_list, function(x) x@Egg_NOS[, 1, y] + x@Egg_HOS[, 1, y]) %>%
+  reshape2::melt() %>%
+  rename(Simulation = Var1, Egg = value) %>%
+  mutate(Egg = Egg/1e6) %>%
+  mutate(scenario = name[Var2])
+
+val_prob <- data.frame(
+  scenario = name,
+  P_250 = P_Sgen,
+  P_476 = P_Smsy85
+) %>%
+  reshape2::melt(id.vars = "scenario") %>%
+  rename(m = value) %>%
+  mutate(median = m, lwr = m, upr = m)
+
 val_sim <- list(PNI, #NOS,
                 TS, pHOSeff, p_wild, MA, #Fitness,
-                Esc, Brood, K, pNOBeff) %>%
+                Esc, Brood, K, pNOBeff, Egg) %>%
   Reduce(left_join, .) %>%
   select(!Var2) %>%
   reshape2::melt(id.vars = c("Simulation", "scenario")) %>%
@@ -320,6 +335,7 @@ val_sim <- list(PNI, #NOS,
             lwr = quantile(value, 0.25, na.rm = TRUE),
             upr = quantile(value, 0.75, na.rm = TRUE),
             .by = c(scenario, variable)) %>%
+  rbind(val_prob) %>%
   left_join(gr, by = "scenario") %>%
   mutate(scenario = factor(scenario, rev(name)))
 
@@ -334,32 +350,39 @@ plot_dotplot <- function(val_sim) {
 
   g
 }
-g <- plot_dotplot(val_sim) +
+
+pm_primary <- c("PNI", "Total Spawners", "P_250", "P_476", "pNOBeff")
+pm_ancillary <- c("pHOSeff", "pWILD", "Mean age", "Brood", "ESSR Catch", "Escapement", "Egg")
+
+g <- val_sim %>%
+  filter(variable %in% pm_primary) %>%
+  plot_dotplot() +
   scale_shape_manual(values = c(1, 4, 16)) +
   #theme(strip.placement = "outside") +
   theme(legend.position = "bottom") +
   guides(colour = guide_legend(ncol = 1), shape = guide_legend(ncol = 1)) +
   labs(x = NULL, y = NULL, shape = "ESSR ER", colour = "pNOB target")
-ggsave("figures/SMSE/performance_metrics.png", g, width = 6, height = 7)
+ggsave("figures/SMSE/performance_metrics_primary.png", g, width = 6, height = 5.5)
 
-
-
-val_prob <- data.frame(
-  scenario = name,
-  P_250 = P_Sgen,
-  P_476 = P_Smsy85
-) %>%
-  reshape2::melt(id.vars = "scenario") %>%
-  rename(median = value)
+g <- val_sim %>%
+  filter(variable %in% pm_ancillary) %>%
+  plot_dotplot() +
+  scale_shape_manual(values = c(1, 4, 16)) +
+  #theme(strip.placement = "outside") +
+  theme(legend.position = "bottom") +
+  guides(colour = guide_legend(ncol = 1), shape = guide_legend(ncol = 1)) +
+  labs(x = NULL, y = NULL, shape = "ESSR ER", colour = "pNOB target")
+ggsave("figures/SMSE/performance_metrics_ancillary.png", g, width = 6, height = 7)
 
 d <- val_sim %>%
   select(scenario, variable, median) %>%
-  rbind(val_prob)
+  mutate(variable = factor(variable, c(pm_primary, pm_ancillary)))
 
 plot_table <- function(df, padding = 0.52) {
 
   d <- df %>%
     mutate(txt = signif(median, 3)) %>%
+    mutate(txt = ifelse(txt < 0.01, "<0.01", txt)) %>%
     mutate(val_rel = median/max(median),
            val_0_1 = (median - min(median)) / (max(median) - min(median)),
            .by = variable)
@@ -389,13 +412,17 @@ plot_table <- function(df, padding = 0.52) {
     scale_fill_gradient2(low = "deeppink", high = "green4", mid = "white", limits = c(0, 1), midpoint = 0.5)
   g
 }
-g <- plot_table(d)
+g <- plot_table(d) +
+  geom_vline(xintercept = 5.5, linewidth = 1, linetype = 2) +
+  geom_hline(yintercept = 5.5, linewidth = 1, linetype = 3)
 ggsave("figures/SMSE/performance_table_full.png", g, width = 7, height = 3.5)
 
 d_sens <- d %>%
-  filter(!variable %in% c("P_250", "P_476"), scenario %in% name[c(1, 10:14)]) %>%
+  filter(scenario %in% name[c(1, 10:14)]) %>%
   mutate(scenario = factor(scenario, levels = rev(name[c(1, 10:14)])))
-g <- plot_table(d_sens)
+g <- plot_table(d_sens) +
+  geom_vline(xintercept = 5.5, linewidth = 1, linetype = 2) +
+  geom_hline(yintercept = 5.5, linewidth = 1, linetype = 3)
 ggsave("figures/SMSE/performance_table_sens.png", g, width = 5.5, height = 3)
 
 g <- salmonMSE::plot_tradeoff(

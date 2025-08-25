@@ -17,6 +17,9 @@ g <- salmonMSE:::CM_maturity(report, d, 1979, brood = TRUE, annual = TRUE) +
   ggtitle("Brood year maturity")
 ggsave("figures/Sarita_maturity_brood.png", g, height = 8, width = 6)
 
+g <- salmonMSE:::CM_maturity(report, d, 1979, brood = TRUE, annual = FALSE)
+ggsave("figures/Sarita_maturity_summary.png", g, height = 3, width = 5)
+
 g <- salmonMSE:::CM_ts_origin(report, 1979, var = "Spawners")
 ggsave("figures/Sarita_spawners.png", g, height = 3, width = 5)
 

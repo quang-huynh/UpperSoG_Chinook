@@ -7,11 +7,11 @@ After that, all subsequent sections will be turned into appendices. -->
 
 \clearpage
 
-# ROBERTSON CWT EXPLOITATION RATE (ER) MODEL {#app:sarita-cwt}
+# ROBERTSON CWT EXPLOITATION RATE MODEL (ERM) {#app:sarita-cwt}
 
 Typical run reconstruction uses a historical time series of spawner and recruit data to estimate the productivity of salmon populations. Escapement time series may be available but catch may not be identifiable for a population of interest, for example, if the population is a conservation unit, as part of a larger stock complex and catch composition is not identified to individual CUs.
 
-Walters and Korman (2024) demonstrated an approach for reconstruction if Coded Wire Tag (CWT) data from an indicator hatchery are assumed to be representative to life cycle parameters of a natural population.
+@walters2024 demonstrated an approach for reconstruction if Coded Wire Tag (CWT) data from an indicator hatchery are assumed to be representative to life cycle parameters of a natural population.
 
 The model consists of two components. 
 First, CWT data informs natural mortality, year-specific maturity, and exploitation rate in the marine environment. 
@@ -20,26 +20,43 @@ Second, these parameters are then applied to the system of interest and informs 
 
 For the salmonMSE modeling, we primarily used the Robertson exploitation rate model to inform maturity (for traditionals), fishery vulnerability at age (assumed identical for all release strategies and life cycle groups), as well the relative abundance of hatchery and natural spawners for Sarita Chinook. 
 
-For both the salmonMSE operating model and exploitation rate estimation model, natural mortality at age 2--5 was fixed to values used in the CTC exploitation rate model. While the age 1 natural mortality value was estimated in the Robertson ER model, values from the life cycle table were used in the operating model to illustrate differences among life cycle groups.
+For both the salmonMSE operating model and exploitation rate estimation model, natural mortality at age 2--5 was fixed to values used in @ctc2023. While the age 1 natural mortality value was estimated in the Robertson ER model, values from the life cycle table were used in the operating model to illustrate differences among life cycle groups.
 
-# QUINSAM CWT EXPLOITATION RATE (ER) MODEL {#app:quinsam-cwt}
+```{r sarita-mat, fig.cap="Estimates of maturity at age for Sarita Chinook using Robertson Creek CWT as the indicator stock. Estimates after 2018 are uncertain because brood years have not completed their life cycle."}
+knitr::include_graphics(here::here("figures/Sarita_maturity_summary.png"))
+```
+
+```{r sarita-spawner, fig.cap="Sarita spawner estimates in the exploitation rate model fitted to Sarita escapement estimates and CWT from Robertson Creek."}
+knitr::include_graphics(here::here("figures/Sarita_spawners.png"))
+```
+
+(ref:fig-sarita-pt) Preterminal ocean fishery exploitation rate by age from the ERM (black). Lines in red are values from @ctc2023.
+
+```{r sarita-pt, fig.cap="(ref:fig-sarita-pt)"}
+knitr::include_graphics(here::here("figures/Sarita_ex_PT_CTC.png"))
+```
+
+(ref:fig-sarita-t) Terminal ocean fishery exploitation rate by age from the ERM (black). Lines in red are values from @ctc2023.
+
+```{r sarita-t, fig.cap="(ref:fig-sarita-t)"}
+knitr::include_graphics(here::here("figures/Sarita_ex_T_CTC.png"))
+```
+
+# QUINSAM CWT EXPLOITATION RATE MODEL (ERM) {#app:quinsam-cwt}
 
 Quinsam CWT provided an alternative dataset from which to estimate differences in maturity by release strategy. Brood year maturity was estimated for traditionals and for each age, a constant offset parameter was estimated to arrive at the maturity for fed fry.
 
 The ratios of differences in the Quinsam system was then applied to the Robertson traditionals to arrive at a hypothesized maturity function for Sarita fed fry.
 
-```{r quinsam-mat, fig.cap="Comparison of brood year maturity at age estimates for Quinsam and Robertson (RBT)."}
+```{r quinsam-mat, fig.cap="Comparison of brood year maturity at age estimates from exploitation rate models fitted to Quinsam and Robertson (RBT) CWT."}
 knitr::include_graphics(here::here("figures/Quinsam_CWT_maturity.png"))
 ```
 
-```{r sarita-mat, fig.cap="Comparison of brood year maturity at age for Robertson traditionals (estimated from CWT) and fed fry (hypothesized after applying differences from Quinsam)."}
+(ref:fig-sarita-mat-rs) Comparison of brood year maturity at age used to model the Sarita Chinook population. It is assumed that traditionals are identical to Robertson traditionals. Sarita fed fry are proposed values after applying differences between release strategies from Quinsam to Robertson traditionals.
+
+```{r sarita-mat-rs, fig.cap="(ref:fig-sarita-mat-rs)"}
 knitr::include_graphics(here::here("figures/Sarita_maturity.png"))
 ```
-
-```{r sarita-spawner, fig.cap="Sarita spawner estimates from the Robertson ER model."}
-knitr::include_graphics(here::here("figures/Sarita_spawners.png"))
-```
-
 
 
 <!-- At the end of your appendices add: -->
