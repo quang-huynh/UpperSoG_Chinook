@@ -192,12 +192,23 @@ saveRDS(samp, file = "CM/Quinsam_CM_05.14.25.rds")
 
 samp <- readRDS(file = "CM/Quinsam_CM_05.14.25.rds")
 report <- salmonMSE:::get_report(samp)
+d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
 
-#g1 <- salmonMSE:::CM_maturity(report, d, year1 = min(full_table$BROOD_YEAR), r = 1) +
-#  ggtitle("Quinsam Fed Fry")
-#g2 <- salmonMSE:::CM_maturity(report, d, year1 = min(full_table$BROOD_YEAR), r = 2) +
-#  ggtitle("Quinsam Smolt 0+")
+# Difference in maturity between release strategies
+g1 <- salmonMSE:::CM_maturity(report, d, year1 = min(full_table$BROOD_YEAR), r = 1) +
+  ggtitle("Quinsam Fed Fry")
+g2 <- salmonMSE:::CM_maturity(report, d, year1 = min(full_table$BROOD_YEAR), r = 2) +
+  ggtitle("Quinsam Smolt 0+")
+g <- ggpubr::ggarrange(g1, g2, common.legend = TRUE, legend = "bottom")
+ggsave("figures/Quinsam_maturity_RS.png", width = 6, height = 3)
+
+mat <- rbind(
+  g1$data %>% mutate(RS = "Fed Fry"),
+  g1$data %>% mutate(RS = "Smolt 0+")
+) %>%
+  select(!Var2) %>%
+  rename(`BroodYear` = Year)
 
 # Fit to cwt catch
 g <- salmonMSE:::CM_fit_CWTcatch(report, d, year1 = 2005, rs_names = rs_names)
