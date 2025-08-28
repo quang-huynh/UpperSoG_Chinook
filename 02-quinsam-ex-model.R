@@ -205,10 +205,11 @@ ggsave("figures/Quinsam_maturity_RS.png", width = 6, height = 3)
 
 mat <- rbind(
   g1$data %>% mutate(RS = "Fed Fry"),
-  g1$data %>% mutate(RS = "Smolt 0+")
+  g2$data %>% mutate(RS = "Smolt 0+")
 ) %>%
   select(!Var2) %>%
   rename(`BroodYear` = Year)
+#write_csv(mat, file = "tables/Quinsam_maturity.csv")
 
 # Fit to cwt catch
 g <- salmonMSE:::CM_fit_CWTcatch(report, d, year1 = 2005, rs_names = rs_names)
