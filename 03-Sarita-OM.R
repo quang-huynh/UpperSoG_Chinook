@@ -89,7 +89,7 @@ Harvest <- new(
   u_terminal = 0.66,
   MSF_PT = FALSE,
   MSF_T = FALSE,
-  release_mort = c(0, 0),
+  release_mort = c(0.1, 0.1),
   vulPT = t(vulPT),
   vulT = t(vulT)
 )
@@ -149,6 +149,7 @@ Hatchery <- new(
   pmax_NOB = 0.50,     # SEP guideline, suggested by Lian
   ptarget_NOB = 0.50,  # Hatchery data, Sarita AHA inputs, will evaluate a grid of 50, 75, 100 percent
   phatchery = 0.5,     # Stand-in for ESSR fishery with HOS exploitation rates of 0.5, 0.75, or 1
+  hatchery_MSF = TRUE,
   premove_HOS = 0,
   fec_brood = fec, #rep(3625, maxage) is used from Hatchery data, Sarita AHA input
   fitness_type = c("Ford", "none"),
@@ -326,7 +327,7 @@ SOM2@Habitat@fry_sdev <- fpe2
 saveRDS(SOM2, "SOM/SOM_highsurv.rds")
 
 
-# Scenario with declining maturity
+# Scenario with declining maturity and fecundity
 # Get posterior medians
 # Do regression vs time (since 1990-2021)
 # Apply slope through projection
@@ -363,7 +364,20 @@ for (i in matt_slope$Age) {
   }
 
 }
-saveRDS(SOM3, "SOM/SOM_declinemat.rds")
+
+fec_val <- read.csv("tables/fec_decline.csv")
+fec_decline <- array(fec_Sarita * p_female, c(maxage, nsim, nyears + proyears)) %>% aperm(c(2, 1, 3))
+for (a in 3:5) {
+  fec_decline[, a, nyears + seq(1, proyears)] <- matrix(
+    as.numeric(fec_val[a-2, -1]) * fec_Sarita[a]/fec_val[a-2, 2] * p_female[a],
+    nsim,
+    proyears,
+    byrow = TRUE
+  )
+}
+SOM3@Bio@fec <- fec_decline
+SOM3@Hatchery@fec_brood <- fec_decline
+saveRDS(SOM3, "SOM/SOM_declinematfec.rds")
 
 
 # Make figure of maturity
@@ -396,5 +410,15 @@ if (FALSE) {
 
   g <- ggpubr::ggarrange(g1, g2, ncol = 1, common.legend = TRUE, legend = "right")
   ggsave("figures/SMSE/Sarita_proj_maturity.png", g, height = 6, width = 6)
+
+  g <- (SOM3@Bio@fec[1, , ]/p_female) %>%
+    reshape2::melt() %>%
+    rename(Age = Var1, Year = Var2) %>%
+    filter(Age > 1) %>%
+    ggplot(aes(Year, value, colour = factor(Age))) +
+    geom_line() +
+    geom_point() +
+    labs(y = "Fecundity", colour = "Age")
+  ggsave("figures/SMSE/Sarita_decline_fecundity.png", g, height = 3, width = 5)
 
 }
