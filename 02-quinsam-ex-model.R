@@ -224,7 +224,7 @@ g2 <- salmonMSE:::CM_CWT_ER(report, type = "all", year1 = 2005, rs_names = rs_na
 g <- ggpubr::ggarrange(g1, g2, ncol = 1)
 ggsave("figures/Quinsam_CWT_ER.png", g, height = 6, width = 4)
 
-salmonMSE:::reportCM(
+salmonMSE::report_CM(
   samp,
   rs_names = rs_names, name = "Sarita (Quinsam CWT)", year = unique(full_table$BROOD_YEAR),
   dir = "CM", filename = "Quinsam_05.14"

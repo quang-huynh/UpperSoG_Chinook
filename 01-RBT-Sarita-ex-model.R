@@ -161,7 +161,7 @@ cwt_dat %>%
 
 
 # Model assumption of catch expansion factor
-# Alternative values to change data weighting of CWT (re-adjust numbers accordingly)
+# Use alternative values to change data weighting of CWT (re-adjust numbers accordingly)
 cwtExp <- 1
 
 d <- list(
@@ -223,6 +223,6 @@ samp <- sample_CM(fit, chains = 3, cores = 3, iter = 10000, thin = 5)
 saveRDS(samp, file = "CM/Sarita_RBT_CM_09.08.25.rds")
 
 samp <- readRDS("CM/Sarita_RBT_CM_09.08.25.rds")
-salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_09.08", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
+salmonMSE::report_CM(samp, dir = "CM", filename = "Sarita_09.08", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
 
 #shinystan::launch_shinystan(samp)
