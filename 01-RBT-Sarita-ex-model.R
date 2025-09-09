@@ -149,15 +149,30 @@ M_CTC <- -log(surv)
 
 # See Brown et al. Res Doc p. 25 (section 3.3.3), use average of 3900 when needed
 fec_Sarita <- c(0, 1500, 3000, 3600, 4600)
+
+# Expansion factors for CWT
+cwt_dat %>%
+  mutate(EstimatedNumber = as.numeric(EstimatedNumber),
+         Exp = AdjustedEstimatedNumber/EstimatedNumber) %>%
+  select(EstimatedNumber, Exp, ExpansionFactor) %>%
+  filter(Exp < 2) %>%
+  pull(Exp) %>%
+  hist(breaks = 50)
+
+
+# Model assumption of catch expansion factor
+# Alternative values to change data weighting of CWT (re-adjust numbers accordingly)
+cwtExp <- 1
+
 d <- list(
   Nages = Nages,
   Ldyr = Ldyr,
   lht = 1,
   n_r = 1,
   cwtrelease = cwt_rel_annual$rel,
-  cwtesc = array(round(cwt_esc), c(Ldyr, Nages, 1)),
-  cwtcatPT = array(round(cwt_pt), c(Ldyr, Nages, 1)),
-  cwtcatT = array(round(cwt_t), c(Ldyr, Nages, 1)),
+  cwtesc = array(round(cwt_esc/cwtExp), c(Ldyr, Nages, 1)),
+  cwtcatPT = array(round(cwt_pt/cwtExp), c(Ldyr, Nages, 1)),
+  cwtcatT = array(round(cwt_t/cwtExp), c(Ldyr, Nages, 1)),
   bvulPT = vulPT,
   bvulT = vulT,
   RelRegFPT = rep(1, Ldyr),
@@ -174,7 +189,7 @@ d <- list(
   s_enroute = 1,
   finitPT = 0.8,
   finitT = 0.8,
-  cwtExp = 1
+  cwtExp = cwtExp
 )
 
 
@@ -204,10 +219,10 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 #dat <- salmonMSE:::get_CMdata(fit)
-samp <- sample_CM(fit, chains = 4, cores = 4)
-saveRDS(samp, file = "CM/Sarita_RBT_CM_05.20.25.rds")
+samp <- sample_CM(fit, chains = 3, cores = 3, iter = 10000, thin = 5)
+saveRDS(samp, file = "CM/Sarita_RBT_CM_09.08.25.rds")
 
-samp <- readRDS("CM/Sarita_RBT_CM_05.20.25.rds")
-salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_05.20", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
+samp <- readRDS("CM/Sarita_RBT_CM_09.08.25.rds")
+salmonMSE:::reportCM(samp, dir = "CM", filename = "Sarita_09.08", year = full_year$BroodYear, name = "Sarita (RBT CWT)")
 
 #shinystan::launch_shinystan(samp)
