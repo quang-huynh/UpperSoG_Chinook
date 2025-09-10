@@ -2,7 +2,7 @@
 # These plots are all available in the markdown report
 
 # Get MCMC values
-samp <- readRDS("CM/Sarita_RBT_CM_05.20.25.rds")
+samp <- readRDS("CM/Sarita_RBT_CM_09.08.25.rds")
 report <- salmonMSE:::get_report(samp)
 
 # Get data
@@ -69,7 +69,7 @@ g <- salmonMSE:::CM_ER(report, type = "T", year1 = 1979, at_age = TRUE) +
   geom_line(data = ctc, aes(y = terminal_er), colour = "red")
 ggsave("figures/Sarita_ex_T_CTC.png", g, height = 4, width = 6)
 
-g <- salmonMSE:::CM_ER(report, brood = FALSE, type = "all", year1 = 1979, at_age = FALSE)
+#g <- salmonMSE:::CM_ER(report, brood = FALSE, type = "all", year1 = 1979, at_age = FALSE)
 
 
 
