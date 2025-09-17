@@ -71,8 +71,8 @@ vulT <- rep(0, Nages)
 M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1)) # CTC 23-06 p.9; CWT Exploitation Rate analyses
 
 fec_Quinsam <- c(0, 0,800, 2000, 2500) # Walters and Korman (2024); Filipovic et al. (in revision) RPA.
-# Is this eggs/female or eggs/total spawner?
-# age-6 fecundity = 3000not used
+# Eggs/total spawner (not female spawner)
+# age-6 fecundity = 3000 not used
 
 d <- list(
   Nages = Nages,
@@ -91,7 +91,7 @@ d <- list(
   bmatt = mat,
   hatchsurv = 0.5, #Walters and Korman (2024); 1 used for WCVI Chinook
   gamma = 0.8,
-  ssum = 0.4, # ppn female perhaps should set to 1 if fecundity is per total spawner?
+  ssum = 1, # ppn female. fecundity is eggs/total spawner, so this is set to 1.
   fec = fec_Quinsam,
   r_matt = 2,
   obsescape = esc$escapement,
