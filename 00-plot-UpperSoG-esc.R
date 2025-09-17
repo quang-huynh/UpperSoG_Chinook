@@ -2,7 +2,7 @@
 
 library(tidyverse)
 
-# To update with Quinsam escapement data once available
+# To update with Upper SoG escapement (Quinsam, Campbell, Adam, Salmon, Nimpkish) data once available
 
 
 # esc <- readr::read_csv("data/R-OUT_infilled_indicators_escapement_timeseries.csv")
