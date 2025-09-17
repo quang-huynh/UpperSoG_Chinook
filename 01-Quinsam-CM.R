@@ -9,40 +9,11 @@ rec <- readxl::read_excel(
 ) %>%
   mutate(is_catch = TotCatch > 0, is_esc = Escape > 0)
 
-#table(rec$is_catch, rec$is_esc)
-#filter(rec, is_catch & is_esc) %>% View()
 
-# Catch area names
-#cnames <- colnames(rec)
-#data.frame(
-#  Name = cnames[grepl("1|2|3", cnames)]
-#) %>%
-#  readr::write_csv(file = "data/Quinsam/Quinsam_fisheries.csv")
-
-
-# CWT recoveries
-#cwt <- summarise(rec,
-#                 n_catch = sum(TotCatch),
-#                 n_esc = sum(Escape),
-#                 .by = c(Age, BROOD_YEAR))
-#
-#g <- ggplot(cwt, aes(BROOD_YEAR, n_catch)) +
-#  facet_wrap(vars(Age), scales = "free_y") +
-#  geom_line() +
-#  geom_point() +
-#  expand_limits(y = 0)
-#g
-#
-#g <- ggplot(cwt, aes(BROOD_YEAR, n_esc)) +
-#  facet_wrap(vars(Age), scales = "free_y") +
-#  geom_line() +
-#  geom_point() +
-#  expand_limits(y = 0)
-#g
-
-# CWT by release strategy
+# CWT by release strategy, removing fed fry (only traditionals: seapen 0+ and smolt 0+)
 cwt_rs <- rec %>%
-  mutate(RS = ifelse(RELEASE_STAGE_NAME == "Fed Fry", "Fed Fry", "Seapen/Smolt 0+")) %>%
+  filter(RELEASE_STAGE_NAME %in% c("Seapen 0+", "Smolt 0+")) %>%
+  mutate(RS = "Seapen/Smolt 0+") %>%
   summarise(
     n_catch = sum(TotCatch),
     n_esc = sum(Escape),
@@ -57,8 +28,8 @@ rel <- readxl::read_excel(
 )
 
 rel_rs <- rel %>%
-  filter(RELEASE_STAGE_NAME %in% c("Fed Fry", "Smolt 0+", "Seapen 0+")) %>%
-  mutate(RS = ifelse(RELEASE_STAGE_NAME == "Fed Fry", "Fed Fry", "Seapen/Smolt 0+")) %>%
+  filter(RELEASE_STAGE_NAME %in% c("Smolt 0+", "Seapen 0+")) %>%
+  mutate(RS = "Seapen/Smolt 0+") %>%
   summarise(n_CWT = sum(TaggedNum) - sum(ShedTagNum), .by = c(BROOD_YEAR, RS))
 
 
@@ -93,14 +64,16 @@ esc <- readr::read_csv("data/R-OUT_infilled_indicators_escapement_timeseries.csv
 Ldyr <- dim(cwt_esc)[1]
 Nages <- 5
 
-mat <- c(0, 0.1, 0.4, 0.95, 1)
-vulPT <- c(0, 0.075, 0.9, 0.9, 1)
+mat <- c(0, 0.1, 0.4, 0.95, 1) #Could change mat (mean of prior) to align with Quinsam estimates in Walters and Korman (2024)
+vulPT <- c(0, 0.075, 0.9, 0.9, 1) #Could change vulPT (mean of prior) to align with Quinsam estimates in Walters and Korman (2024)
 vulT <- rep(0, Nages)
 
-M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1))
+M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1)) # CTC 23-06 p.9; CWT Exploitation Rate analyses
 
-#fec_Cowichan <- c(0, 87, 1153, 2780, 2700)
-fec_Sarita <- c(0, 3000, 3000, 3600, 4600) # See Res Doc
+fec_Quinsam <- c(0, 0,800, 2000, 2500) # Walters and Korman (2024); Filipovic et al. (in revision) RPA.
+# Is this eggs/female or eggs/total spawner?
+# age-6 fecundity = 3000not used
+
 d <- list(
   Nages = Nages,
   Ldyr = Ldyr,
@@ -116,16 +89,16 @@ d <- list(
   RelRegFT = rep(1, Ldyr),
   mobase = M_CTC,
   bmatt = mat,
-  hatchsurv = 1,
+  hatchsurv = 0.5, #Walters and Korman (2024); 1 used for WCVI Chinook
   gamma = 0.8,
-  ssum = 0.4,
-  fec = fec_Sarita,
+  ssum = 0.4, # ppn female perhaps should set to 1 if fecundity is per total spawner?
+  fec = fec_Quinsam,
   r_matt = 2,
   obsescape = esc$escapement,
   propwildspawn = rep(1, Ldyr),
   hatchrelease = rep(0, Ldyr + 1),
-  finitPT = 0.8,
-  finitT = 0.8,
+  finitPT = 0.8, # Walters and Korman (2024)
+  finitT = 0.8,  # Walters and Korman (2024)
   cwtExp = 1
 )
 
