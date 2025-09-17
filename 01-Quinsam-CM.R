@@ -11,13 +11,12 @@ rec <- readxl::read_excel(
 
 
 # CWT by release strategy, removing fed fry (only traditionals: seapen 0+ and smolt 0+)
-cwt_rs <- rec %>%
+cwt <- rec %>%
   filter(RELEASE_STAGE_NAME %in% c("Seapen 0+", "Smolt 0+")) %>%
-  mutate(RS = "Seapen/Smolt 0+") %>%
-  summarise(
+   summarise(
     n_catch = sum(TotCatch),
     n_esc = sum(Escape),
-    .by = c(Age, BROOD_YEAR, RS)
+    .by = c(Age, BROOD_YEAR)
   )
 
 
@@ -27,28 +26,26 @@ rel <- readxl::read_excel(
   sheet = "Releases"
 )
 
-rel_rs <- rel %>%
+rel <- rel %>%
   filter(RELEASE_STAGE_NAME %in% c("Smolt 0+", "Seapen 0+")) %>%
-  mutate(RS = "Seapen/Smolt 0+") %>%
-  summarise(n_CWT = sum(TaggedNum) - sum(ShedTagNum), .by = c(BROOD_YEAR, RS))
+  summarise(n_CWT = sum(TaggedNum) - sum(ShedTagNum), .by = c(BROOD_YEAR))
 
 
 # Fit model ----
 full_table <- expand.grid(
-  BROOD_YEAR = seq(min(cwt_rs$BROOD_YEAR), 2023), # 2005 - 2023
-  Age = seq(1, 5),
-  RS = c("Fed Fry", "Seapen/Smolt 0+")
+  BROOD_YEAR = seq(min(cwt$BROOD_YEAR), 2023), # 2005 - 2023
+  Age = seq(1, 5)
 ) %>%
-  left_join(cwt_rs)
+  left_join(cwt)
 
-cwt_catch <- reshape2::acast(full_table, list("BROOD_YEAR", "Age", "RS"), value.var = "n_catch", fill = 0)
-cwt_esc <- reshape2::acast(full_table, list("BROOD_YEAR", "Age", "RS"), value.var = "n_esc", fill = 0)
+cwt_catch <- reshape2::acast(full_table, list("BROOD_YEAR", "Age"), value.var = "n_catch", fill = 0)
+cwt_esc <- reshape2::acast(full_table, list("BROOD_YEAR", "Age"), value.var = "n_esc", fill = 0)
 
 cwt_rel <- left_join(
-  full_table %>% filter(Age == 1) %>% select(BROOD_YEAR, RS),
-  rel_rs
+  full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
+  rel
 ) %>%
-  reshape2::acast(list("BROOD_YEAR", "RS"), fill = 0)
+  reshape2::acast(list("BROOD_YEAR"), fill = 0)
 
 # Change this to Quinsam escapement, currently Sarita esc
 esc <- readr::read_csv("data/R-OUT_infilled_indicators_escapement_timeseries.csv") %>%
