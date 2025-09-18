@@ -33,7 +33,26 @@ rel_rs <- rel %>%
   summarise(n_CWT = sum(TaggedNum) - sum(ShedTagNum), .by = c(BROOD_YEAR, RS))
 
 
-# Fit model ----
+# Total hatchery releases, across all facilities, all release types
+rel_Quinsam.x <- readxl::read_excel(
+  file.path("data", "Quinsam", "2025-07-23-Quinsam_Chinook_Releases_1970-2024.xlsx"),
+  sheet = "Actual Release"
+)
+
+rel_Quinsam <- rel_Quinsam.x %>%
+  # filter(RELEASE_STAGE_NAME %in% c("Smolt 0+", "Seapen 0+")) %>%
+  # mutate(RS = "Seapen/Smolt 0+") %>%
+  summarise(n_rel = sum(TotalRelease), .by = c(BROOD_YEAR)) %>%
+  arrange(BROOD_YEAR)
+
+# Crop to years with CWT data PLUS an extra year (to confirm)
+full_year <- data.frame(BROOD_YEAR= seq(min(cwt_rs$BROOD_YEAR),
+                                        max(cwt_rs$BROOD_YEAR) + 1))
+rel_Quinsam <- left_join(full_year, rel_Quinsam, by = "BROOD_YEAR")
+rel_Quinsam$n_rel[is.na(rel_Quinsam$n_rel)] <- 0
+
+
+# Set up arrays
 full_table <- expand.grid(
   BROOD_YEAR = seq(min(cwt_rs$BROOD_YEAR), 2023), # 2005 - 2023
   Age = seq(1, 5),
@@ -50,6 +69,7 @@ cwt_rel <- left_join(
 ) %>%
   reshape2::acast(list("BROOD_YEAR", "RS"), fill = 0)
 
+# Escapement time-series
 # Change this to Quinsam escapement, currently Sarita esc
 esc <- readr::read_csv("data/R-OUT_infilled_indicators_escapement_timeseries.csv") %>%
   filter(river == "sarita_river") %>%
@@ -78,7 +98,7 @@ d <- list(
   Nages = Nages,
   Ldyr = Ldyr,
   lht = 1,
-  n_r = 2,
+  n_r = 1,
   cwtrelease = cwt_rel,
   cwtesc = round(cwt_esc),
   cwtcatPT = round(cwt_catch),
@@ -96,7 +116,7 @@ d <- list(
   r_matt = 2,
   obsescape = esc$escapement,
   propwildspawn = rep(1, Ldyr),
-  hatchrelease = rep(0, Ldyr + 1), #to be udpated
+  hatchrelease = rel_Quinsam$n_rel,
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0.8,  # Walters and Korman (2024)
   cwtExp = 1
