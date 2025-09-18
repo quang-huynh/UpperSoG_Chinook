@@ -13,11 +13,11 @@ rec <- readxl::read_excel(
 # CWT by release strategy, removing fed fry (only traditionals: seapen 0+ and smolt 0+)
 cwt_rs <- rec %>%
   filter(RELEASE_STAGE_NAME %in% c("Seapen 0+", "Smolt 0+")) %>%
-  mutate(RS = "Seapen/Smolt 0+") %>%
+  # mutate(RS = "Seapen/Smolt 0+") %>%
   summarise(
     n_catch = sum(TotCatch),
     n_esc = sum(Escape),
-    .by = c(Age, BROOD_YEAR, RS)
+    .by = c(Age, BROOD_YEAR)#, RS)
   )
 
 
@@ -29,9 +29,25 @@ rel <- readxl::read_excel(
 
 rel_rs <- rel %>%
   filter(RELEASE_STAGE_NAME %in% c("Smolt 0+", "Seapen 0+")) %>%
-  mutate(RS = "Seapen/Smolt 0+") %>%
-  summarise(n_CWT = sum(TaggedNum) - sum(ShedTagNum), .by = c(BROOD_YEAR, RS))
+  # mutate(RS = "Seapen/Smolt 0+") %>%
+  summarise(n_CWT = sum(TaggedNum) - sum(ShedTagNum), .by = c(BROOD_YEAR))#, RS))
 
+# Set up matrices
+full_table <- expand.grid(
+  BROOD_YEAR = seq(min(cwt_rs$BROOD_YEAR), 2023), # 2005 - 2023
+  Age = seq(1, 5)
+  # RS = c( "Seapen/Smolt 0+")
+) %>%
+  left_join(cwt_rs)
+
+cwt_catch <- reshape2::acast(full_table, list("BROOD_YEAR", "Age"), value.var = "n_catch", fill = 0)
+cwt_esc <- reshape2::acast(full_table, list("BROOD_YEAR", "Age"), value.var = "n_esc", fill = 0)
+
+cwt_rel <- left_join(
+  full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),# RS),
+  rel_rs
+) %>%
+  reshape2::acast(list("BROOD_YEAR"), fill = 0)
 
 # Total hatchery releases, across all facilities, all release types
 rel_Quinsam.x <- readxl::read_excel(
@@ -40,8 +56,6 @@ rel_Quinsam.x <- readxl::read_excel(
 )
 
 rel_Quinsam <- rel_Quinsam.x %>%
-  # filter(RELEASE_STAGE_NAME %in% c("Smolt 0+", "Seapen 0+")) %>%
-  # mutate(RS = "Seapen/Smolt 0+") %>%
   summarise(n_rel = sum(TotalRelease), .by = c(BROOD_YEAR)) %>%
   arrange(BROOD_YEAR)
 
@@ -51,31 +65,13 @@ full_year <- data.frame(BROOD_YEAR= seq(min(cwt_rs$BROOD_YEAR),
 rel_Quinsam <- left_join(full_year, rel_Quinsam, by = "BROOD_YEAR")
 rel_Quinsam$n_rel[is.na(rel_Quinsam$n_rel)] <- 0
 
-
-# Set up arrays
-full_table <- expand.grid(
-  BROOD_YEAR = seq(min(cwt_rs$BROOD_YEAR), 2023), # 2005 - 2023
-  Age = seq(1, 5),
-  RS = c( "Seapen/Smolt 0+")
-) %>%
-  left_join(cwt_rs)
-
-cwt_catch <- reshape2::acast(full_table, list("BROOD_YEAR", "Age", "RS"), value.var = "n_catch", fill = 0)
-cwt_esc <- reshape2::acast(full_table, list("BROOD_YEAR", "Age", "RS"), value.var = "n_esc", fill = 0)
-
-cwt_rel <- left_join(
-  full_table %>% filter(Age == 1) %>% select(BROOD_YEAR, RS),
-  rel_rs
-) %>%
-  reshape2::acast(list("BROOD_YEAR", "RS"), fill = 0)
-
 # Escapement time-series
 # Change this to Quinsam escapement, currently Sarita esc
 esc <- readr::read_csv("data/R-OUT_infilled_indicators_escapement_timeseries.csv") %>%
   filter(river == "sarita_river") %>%
   arrange(year) %>%
   right_join(
-    full_table %>% filter(Age == 1, RS == "Seapen/Smolt 0+") %>% select(BROOD_YEAR),
+    full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
     by = c("year" = "BROOD_YEAR")
   )
 
@@ -90,7 +86,7 @@ vulT <- rep(0, Nages)
 
 M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1)) # CTC 23-06 p.9; CWT Exploitation Rate analyses
 
-fec_Quinsam <- c(0, 0,800, 2000, 2500) # Walters and Korman (2024); Filipovic et al. (in revision) RPA.
+fec_Quinsam <- c(0, 0, 800, 2000, 2500) # Walters and Korman (2024); Filipovic et al. (in revision) RPA.
 # Eggs/total spawner (not female spawner)
 # age-6 fecundity = 3000 not used
 
@@ -99,9 +95,9 @@ d <- list(
   Ldyr = Ldyr,
   lht = 1,
   n_r = 1,
-  cwtrelease = cwt_rel,
-  cwtesc = round(cwt_esc),
-  cwtcatPT = round(cwt_catch),
+  cwtrelease = as.vector(cwt_rel),
+  cwtesc = array(round(cwt_esc), c(Ldyr, Nages, 1)),
+  cwtcatPT = array(round(cwt_catch), c(Ldyr, Nages, 1)),
   cwtcatT = NULL,
   bvulPT = vulPT,
   bvulT = vulT,
@@ -113,7 +109,6 @@ d <- list(
   gamma = 0.8,
   ssum = 1, # ppn female. Fecundity is eggs/total spawner, so this is set to 1.
   fec = fec_Quinsam,
-  r_matt = 2,
   obsescape = esc$escapement,
   propwildspawn = rep(1, Ldyr),
   hatchrelease = rel_Quinsam$n_rel,
@@ -147,7 +142,7 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
-samp <- sample_CM(fit, chains = 4, cores = 4)
+samp <- sample_CM(fit, chains = 4, cores = 4)#, iter = 10000, thin = 5
 saveRDS(samp, file = "CM/Quinsam_CM_09.17.25.rds")
 
 samp <- readRDS(file = "CM/Quinsam_CM_09.17.25.rds")
