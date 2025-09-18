@@ -11,12 +11,13 @@ rec <- readxl::read_excel(
 
 
 # CWT by release strategy, removing fed fry (only traditionals: seapen 0+ and smolt 0+)
-cwt <- rec %>%
+cwt_rs <- rec %>%
   filter(RELEASE_STAGE_NAME %in% c("Seapen 0+", "Smolt 0+")) %>%
-   summarise(
+  mutate(RS = "Seapen/Smolt 0+") %>%
+  summarise(
     n_catch = sum(TotCatch),
     n_esc = sum(Escape),
-    .by = c(Age, BROOD_YEAR)
+    .by = c(Age, BROOD_YEAR, RS)
   )
 
 
@@ -26,33 +27,35 @@ rel <- readxl::read_excel(
   sheet = "Releases"
 )
 
-rel <- rel %>%
+rel_rs <- rel %>%
   filter(RELEASE_STAGE_NAME %in% c("Smolt 0+", "Seapen 0+")) %>%
-  summarise(n_CWT = sum(TaggedNum) - sum(ShedTagNum), .by = c(BROOD_YEAR))
+  mutate(RS = "Seapen/Smolt 0+") %>%
+  summarise(n_CWT = sum(TaggedNum) - sum(ShedTagNum), .by = c(BROOD_YEAR, RS))
 
 
 # Fit model ----
 full_table <- expand.grid(
-  BROOD_YEAR = seq(min(cwt$BROOD_YEAR), 2023), # 2005 - 2023
-  Age = seq(1, 5)
+  BROOD_YEAR = seq(min(cwt_rs$BROOD_YEAR), 2023), # 2005 - 2023
+  Age = seq(1, 5),
+  RS = c( "Seapen/Smolt 0+")
 ) %>%
-  left_join(cwt)
+  left_join(cwt_rs)
 
-cwt_catch <- reshape2::acast(full_table, list("BROOD_YEAR", "Age"), value.var = "n_catch", fill = 0)
-cwt_esc <- reshape2::acast(full_table, list("BROOD_YEAR", "Age"), value.var = "n_esc", fill = 0)
+cwt_catch <- reshape2::acast(full_table, list("BROOD_YEAR", "Age", "RS"), value.var = "n_catch", fill = 0)
+cwt_esc <- reshape2::acast(full_table, list("BROOD_YEAR", "Age", "RS"), value.var = "n_esc", fill = 0)
 
 cwt_rel <- left_join(
-  full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
-  rel
+  full_table %>% filter(Age == 1) %>% select(BROOD_YEAR, RS),
+  rel_rs
 ) %>%
-  reshape2::acast(list("BROOD_YEAR"), fill = 0)
+  reshape2::acast(list("BROOD_YEAR", "RS"), fill = 0)
 
 # Change this to Quinsam escapement, currently Sarita esc
 esc <- readr::read_csv("data/R-OUT_infilled_indicators_escapement_timeseries.csv") %>%
   filter(river == "sarita_river") %>%
   arrange(year) %>%
   right_join(
-    full_table %>% filter(Age == 1, RS == "Fed Fry") %>% select(BROOD_YEAR),
+    full_table %>% filter(Age == 1, RS == "Seapen/Smolt 0+") %>% select(BROOD_YEAR),
     by = c("year" = "BROOD_YEAR")
   )
 
@@ -88,12 +91,12 @@ d <- list(
   bmatt = mat,
   hatchsurv = 0.5, #Walters and Korman (2024); 1 used for WCVI Chinook
   gamma = 0.8,
-  ssum = 1, # ppn female. fecundity is eggs/total spawner, so this is set to 1.
+  ssum = 1, # ppn female. Fecundity is eggs/total spawner, so this is set to 1.
   fec = fec_Quinsam,
   r_matt = 2,
   obsescape = esc$escapement,
   propwildspawn = rep(1, Ldyr),
-  hatchrelease = rep(0, Ldyr + 1),
+  hatchrelease = rep(0, Ldyr + 1), #to be udpated
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0.8,  # Walters and Korman (2024)
   cwtExp = 1
@@ -125,16 +128,16 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4)
-saveRDS(samp, file = "CM/Quinsam_CM_05.14.25.rds")
+saveRDS(samp, file = "CM/Quinsam_CM_09.17.25.rds")
 
-samp <- readRDS(file = "CM/Quinsam_CM_05.14.25.rds")
+samp <- readRDS(file = "CM/Quinsam_CM_09.17.25.rds")
 report <- salmonMSE:::get_report(samp)
 d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
 
-rs_names <- c("Fed Fry", "Smolt 0+")
+rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
-  rs_names = rs_names, name = "Sarita (Quinsam CWT)", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "Quinsam_05.14"
+  rs_names = rs_names, name = "Quinsam CWT (trial)", year = unique(full_table$BROOD_YEAR),
+  dir = "CM", filename = "Quinsam_09.17"
 )
