@@ -23,7 +23,8 @@ filtered_dfa <- dfa %>%
   rename(year = "Analysis Year") %>%
   rename(escapement="Max Estimate") %>%
   rename(pop="Description") %>%
-  select(year, escapement, pop)
+  mutate(IsUsed = ifelse(year < 2005, "no", "yes")) %>%
+  select(year, escapement, pop, IsUsed)
 
 
 
@@ -44,7 +45,8 @@ filtered_dfb <- dfb %>%
   rename(year = "Analysis Year") %>%
   rename(escapement="Max Estimate") %>%
   rename(pop="WaterbodyName") %>%
-  select(year, escapement, pop)
+  mutate(IsUsed = ifelse(year < 2005, "no", "yes")) %>%
+  select(year, escapement, pop, IsUsed)
 
 filtered_df <- bind_rows(filtered_dfa, filtered_dfb)
 
@@ -61,9 +63,10 @@ g <- filtered_df %>%
   facet_wrap(vars(pop), scales = "free_y", ncol = 3) +
   expand_limits(y = 0) +
   xlim(1985,2024) +
+  geom_point(aes(col = IsUsed)) +
   theme(legend.position = 'bottom')
 
-ggsave("figures/total_escapement.png", g, height = 9, width = 7)
+ggsave("figures/total_escapement.png", g, height = 6, width = 7)
 
 # esc <- readr::read_csv("data/R-OUT_infilled_indicators_escapement_timeseries.csv")
 #
