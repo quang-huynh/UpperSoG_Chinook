@@ -137,7 +137,7 @@ d <- list(
   hatchrelease = rel_Quinsam$n_rel, #rep(0, Ldyr + 1),
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0.8,  # Walters and Korman (2024)
-  cwtExp = 1 #Walters and Korman (2024) used 0.1
+  cwtExp = 0.1#1 #Walters and Korman (2024) used 0.1
 )
 
 # Fix these parameters
@@ -166,7 +166,7 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5)
-saveRDS(samp, file = "CM/Quinsam_CM_09.29.25.rds")
+saveRDS(samp, file = "CM/Quinsam_CM_cwtExp0.1_09.29.25.rds")
 
 samp <- readRDS(file = "CM/Quinsam_CM_09.29.25.rds")
 report <- salmonMSE:::get_report(samp)
@@ -177,5 +177,5 @@ rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
   rs_names = rs_names, name = "Quinsam", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "Quinsam_09.29"
+  dir = "CM", filename = "Quinsam_cwtExp0.1_09.29"
 )
