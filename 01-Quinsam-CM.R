@@ -35,7 +35,7 @@ rel_rs <- rel %>%
 # Set up matrices
 full_table <- expand.grid(
   BROOD_YEAR = seq(min(cwt_rs$BROOD_YEAR), 2023), # 2005 - 2023
-  Age = seq(1, 5)
+  Age = seq(1, 5)#6)
   # RS = c( "Seapen/Smolt 0+")
 ) %>%
   left_join(cwt_rs)
@@ -66,29 +66,52 @@ rel_Quinsam <- left_join(full_year, rel_Quinsam, by = "BROOD_YEAR")
 rel_Quinsam$n_rel[is.na(rel_Quinsam$n_rel)] <- 0
 
 # Escapement time-series
-# Change this to Quinsam escapement, currently Sarita esc
-esc <- readr::read_csv("data/R-OUT_infilled_indicators_escapement_timeseries.csv") %>%
-  filter(river == "sarita_river") %>%
-  arrange(year) %>%
-  right_join(
-    full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
-    by = c("year" = "BROOD_YEAR")
-  )
+pop <- "Quinsam" #Campbell, Adam, Nimpkish, Salmon
 
+if(pop %in% c("Adam", "Nimpkish", "Salmon")) {
+  esc <- readxl::read_excel(
+    file.path("data", "SOG_N_Escapement-Salmon_Adam_Nimpkish.xlsx"),
+    sheet = "Data") %>%
+    filter(str_starts(Description, pop)) %>%
+    rename(year = "Analysis Year") %>%
+    rename(escapement="Max Estimate") %>%
+    select (year, escapement) %>%
+    right_join(
+      full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
+      by = c("year" = "BROOD_YEAR")
+    )
+}
+
+if(pop %in% c("Quinsam", "Campbell")){
+  pop.cap <- str_to_upper(pop)
+  esc <- readxl::read_excel(
+    file.path("data", "Quinsam", "fsar-sog-cn-cq-nuseds.xlsx"),
+    sheet = "Data") %>%
+    filter(StAD_Use == 1) %>%
+    rename(WaterbodyName = "Waterbody Name") %>%
+    filter(str_starts(WaterbodyName, pop.cap)) %>%
+    rename(year = "Analysis Year") %>%
+    rename(escapement="Max Estimate") %>%
+    select (year, escapement) %>%
+    right_join(
+      full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
+      by = c("year" = "BROOD_YEAR")
+    )
+
+}
 
 # Data object for model
 Ldyr <- dim(cwt_esc)[1]
-Nages <- 5
+Nages <- 5#6
 
-mat <- c(0, 0.1, 0.4, 0.95, 1) #Could change mat (mean of prior) to align with Quinsam estimates in Walters and Korman (2024)
-vulPT <- c(0, 0.075, 0.9, 0.9, 1) #Could change vulPT (mean of prior) to align with Quinsam estimates in Walters and Korman (2024)
+mat <- c(0, 0.1, 0.4, 0.95, 1) # from WCVI = c(0, 0.1, 0.4, 0.95, 1)
+vulPT <- c(0, 0.075, 0.9, 0.9, 1)#  from WCVI = c(0, 0.075, 0.9, 0.9, 1)
 vulT <- rep(0, Nages)
 
 M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1)) # CTC 23-06 p.9; CWT Exploitation Rate analyses
 
-fec_Quinsam <- c(0, 0, 800, 2000, 2500) # Walters and Korman (2024); Filipovic et al. (in revision) RPA.
+fec_Quinsam <- c(0, 0, 800, 2000, 2500) # Walters and Korman (2024) removing age6=3000; Filipovic et al. (in revision) RPA.
 # Eggs/total spawner (not female spawner)
-# age-6 fecundity = 3000 not used
 
 d <- list(
   Nages = Nages,
@@ -111,10 +134,10 @@ d <- list(
   fec = fec_Quinsam,
   obsescape = esc$escapement,
   propwildspawn = rep(1, Ldyr),
-  hatchrelease = rel_Quinsam$n_rel,
+  hatchrelease = rel_Quinsam$n_rel, #rep(0, Ldyr + 1),
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0.8,  # Walters and Korman (2024)
-  cwtExp = 1
+  cwtExp = 1 #Walters and Korman (2024) used 0.1
 )
 
 # Fix these parameters
@@ -142,10 +165,10 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
-samp <- sample_CM(fit, chains = 4, cores = 4)#, iter = 10000, thin = 5
-saveRDS(samp, file = "CM/Quinsam_CM_09.17.25.rds")
+samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5)
+saveRDS(samp, file = "CM/Quinsam_CM_09.29.25.rds")
 
-samp <- readRDS(file = "CM/Quinsam_CM_09.17.25.rds")
+samp <- readRDS(file = "CM/Quinsam_CM_09.29.25.rds")
 report <- salmonMSE:::get_report(samp)
 d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
@@ -153,6 +176,6 @@ d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
-  rs_names = rs_names, name = "Quinsam CWT (trial)", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "Quinsam_09.17"
+  rs_names = rs_names, name = "Quinsam", year = unique(full_table$BROOD_YEAR),
+  dir = "CM", filename = "Quinsam_09.29"
 )
