@@ -49,7 +49,7 @@ cwt_rs <- rec %>%
   )
 
 g <- cwt_rs %>%
-  filter(!is.na(Age), Age %in% seq(2, 5)) %>%
+  filter(!is.na(Age), Age %in% seq(2, 6)) %>%
   mutate(Age = paste("Age", Age)) %>%
   ggplot(aes(BROOD_YEAR, n_catch, colour = RS)) +
   facet_grid(vars(RS), vars(Age), scales = "free_y") +
@@ -62,7 +62,7 @@ ggsave("figures/Quinsam_CWT_catch_rs.png", g, height = 3.5, width = 6)
 
 g <- cwt_rs %>%
   filter(RS == "Seapen/Smolt 0+") %>%
-  filter(!is.na(Age), Age %in% seq(2, 5)) %>%
+  filter(!is.na(Age), Age %in% seq(2, 6)) %>%
   mutate(Age = paste("Age", Age)) %>%
   ggplot(aes(BROOD_YEAR, n_catch)) +
   facet_grid(vars(Age), scales = "free_y", rows=vars( )) +
@@ -74,7 +74,7 @@ g <- cwt_rs %>%
 ggsave("figures/Quinsam_CWT_catch.png", g, height = 3.5, width = 6)
 
 g <- cwt_rs %>%
-  filter(!is.na(Age), Age %in% seq(2, 5)) %>%
+  filter(!is.na(Age), Age %in% seq(2, 6)) %>%
   mutate(Age = paste("Age", Age)) %>%
   ggplot(aes(BROOD_YEAR, n_esc)) +
   facet_grid(vars(RS), vars(Age), scales = "free_y") +
@@ -86,7 +86,7 @@ g <- cwt_rs %>%
 ggsave("figures/Quinsam_CWT_esc_rs.png", g, height = 3.5, width = 6)
 
 g <- cwt_rs %>%
-  filter(!is.na(Age), Age %in% seq(2, 5)) %>%
+  filter(!is.na(Age), Age %in% seq(2, 6)) %>%
   mutate(Age = paste("Age", Age)) %>%
   filter(RS == "Seapen/Smolt 0+") %>%
   ggplot(aes(BROOD_YEAR, n_esc)) +
@@ -112,7 +112,7 @@ ggsave("figures/Quinsam_CWT_esc_total.png", g, width = 4, height = 3)
 # Full matrix of ages (1-5) and years (1979 - 2023)
 full_matrix <- expand.grid(
   BroodYear = 2005:2021,
-  Age = 1:5
+  Age = 1:6
 ) %>%
   as.data.frame()
 
@@ -124,7 +124,7 @@ g <- cwt_rs %>%
   arrange(Age, BroodYear) %>%
   mutate(p = n/sum(n, na.rm = TRUE), .by = BroodYear) %>%
   filter(!is.na(p)) %>%
-  ggplot(aes(BroodYear, p, fill = factor(Age, levels = 5:2))) +
+  ggplot(aes(BroodYear, p, fill = factor(Age, levels = 6:2))) +
   geom_col(width = 1, colour = "grey40") +
   scale_fill_brewer(palette = "Set2") +
   labs(x = "Brood Year", y = "Proportion", fill = "Age", title = "CWT escapement (trad)") +
