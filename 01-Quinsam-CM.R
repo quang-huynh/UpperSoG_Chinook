@@ -49,13 +49,14 @@ cwt_rel <- left_join(
 ) %>%
   reshape2::acast(list("BROOD_YEAR"), fill = 0)
 
-# Total hatchery releases, across all facilities, all release types
+# Total hatchery releases from Quisnam release sites, all release types
 rel_Quinsam.x <- readxl::read_excel(
   file.path("data", "Quinsam", "2025-07-23-Quinsam_Chinook_Releases_1970-2024.xlsx"),
   sheet = "Actual Release"
 )
 
 rel_Quinsam <- rel_Quinsam.x %>%
+  filter(str_starts(RELEASE_SITE_NAME, "Quinsam")) %>%
   summarise(n_rel = sum(TotalRelease), .by = c(BROOD_YEAR)) %>%
   arrange(BROOD_YEAR)
 
@@ -105,7 +106,7 @@ Ldyr <- dim(cwt_esc)[1]
 Nages <- 5#6
 
 mat <- c(0, 0.1, 0.4, 0.95, 1) # from WCVI = c(0, 0.1, 0.4, 0.95, 1)
-vulPT <- c(0, 0.075, 0.9, 0.9, 1)#  from WCVI = c(0, 0.075, 0.9, 0.9, 1)
+vulPT <- c(0, 0.075, 0.9, 0.9, 1) #  from WCVI = c(0, 0.075, 0.9, 0.9, 1)
 vulT <- rep(0, Nages)
 
 M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1)) # CTC 23-06 p.9; CWT Exploitation Rate analyses
@@ -166,9 +167,9 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5)
-saveRDS(samp, file = "CM/Quinsam_CM_09.29.25.rds")
+saveRDS(samp, file = "CM/Quinsam_CM_10.07.25.rds")
 
-samp <- readRDS(file = "CM/Quinsam_CM_09.29.25.rds")
+samp <- readRDS(file = "CM/Quinsam_CM_10.07.25.rds")
 report <- salmonMSE:::get_report(samp)
 d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
@@ -177,5 +178,5 @@ rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
   rs_names = rs_names, name = "Quinsam", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "Quinsam_09.29"
+  dir = "CM", filename = "Quinsam_10.07"
 )
