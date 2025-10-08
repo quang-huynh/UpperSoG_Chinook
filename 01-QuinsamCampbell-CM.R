@@ -49,7 +49,7 @@ cwt_rel <- left_join(
 ) %>%
   reshape2::acast(list("BROOD_YEAR"), fill = 0)
 
-# Total hatchery releases from Quisnam release sites, all release types
+# Total hatchery releases from Quinsam and Cambpell release sites, all release types
 rel_Quinsam.x <- readxl::read_excel(
   file.path("data", "Quinsam", "2025-07-23-Quinsam_Chinook_Releases_1970-2024.xlsx"),
   sheet = "Actual Release"
@@ -58,6 +58,9 @@ rel_Quinsam.x <- readxl::read_excel(
 rel_Quinsam <- rel_Quinsam.x %>%
   filter(str_starts(RELEASE_SITE_NAME, "Quinsam") |
            str_starts(RELEASE_SITE_NAME, "Cold") |
+           str_starts(RELEASE_SITE_NAME, "Campbell") |
+           str_starts(RELEASE_SITE_NAME, "Elk") |
+           str_starts(RELEASE_SITE_NAME, "Second") |
            str_starts(RELEASE_SITE_NAME, "Discovery") |
            str_starts(RELEASE_SITE_NAME, "Orange")) %>%
   summarise(n_rel = sum(TotalRelease), .by = c(BROOD_YEAR)) %>%
@@ -70,39 +73,29 @@ rel_Quinsam <- left_join(full_year, rel_Quinsam, by = "BROOD_YEAR")
 rel_Quinsam$n_rel[is.na(rel_Quinsam$n_rel)] <- 0
 
 # Escapement time-series
-pop <- "Quinsam" #Campbell, Adam, Nimpkish, Salmon
+pop <- c("Quinsam", "Campbell")
 
-if(pop %in% c("Adam", "Nimpkish", "Salmon")) {
-  esc <- readxl::read_excel(
-    file.path("data", "SOG_N_Escapement-Salmon_Adam_Nimpkish.xlsx"),
-    sheet = "Data") %>%
-    filter(str_starts(Description, pop)) %>%
-    rename(year = "Analysis Year") %>%
-    rename(escapement="Max Estimate") %>%
-    select (year, escapement) %>%
-    right_join(
-      full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
-      by = c("year" = "BROOD_YEAR")
-    )
-}
 
-if(pop %in% c("Quinsam", "Campbell")){
-  pop.cap <- str_to_upper(pop)
-  esc <- readxl::read_excel(
-    file.path("data", "Quinsam", "fsar-sog-cn-cq-nuseds.xlsx"),
-    sheet = "Data") %>%
-    filter(StAD_Use == 1) %>%
-    rename(WaterbodyName = "Waterbody Name") %>%
-    filter(str_starts(WaterbodyName, pop.cap)) %>%
-    rename(year = "Analysis Year") %>%
-    rename(escapement="Max Estimate") %>%
-    select (year, escapement) %>%
-    right_join(
-      full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
-      by = c("year" = "BROOD_YEAR")
-    )
+pop.cap <- str_to_upper(pop)
+esc <- readxl::read_excel(
+  file.path("data", "Quinsam", "fsar-sog-cn-cq-nuseds.xlsx"),
+  sheet = "Data") %>%
+  filter(StAD_Use == 1) %>%
+  rename(WaterbodyName = "Waterbody Name") %>%
+  filter(str_starts(WaterbodyName, pop.cap[1]) |
+         str_starts(WaterbodyName, pop.cap[2])) %>%
+  rename(year = "Analysis Year") %>%
+  rename(esc.x = "Max Estimate") %>%
+  summarise(
+    escapement = sum(esc.x),
+    .by = c(year)
+  ) %>%
+  select (year, escapement) %>%
+  right_join(
+    full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
+    by = c("year" = "BROOD_YEAR")
+  )
 
-}
 
 # Data object for model
 Ldyr <- dim(cwt_esc)[1]
@@ -170,9 +163,9 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5)
-saveRDS(samp, file = "CM/Quinsam_10.08.25.rds")
+saveRDS(samp, file = "CM/QuinsamCampbell_10.08.25.rds")
 
-samp <- readRDS(file = "CM/Quinsam_10.08.25.rds")
+samp <- readRDS(file = "CM/QuinsamCampbell_10.08.25.rds")
 report <- salmonMSE:::get_report(samp)
 d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
@@ -180,6 +173,6 @@ d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
-  rs_names = rs_names, name = "Quinsam", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "Quinsam_10.08"
+  rs_names = rs_names, name = "Quinsam/Campbell", year = unique(full_table$BROOD_YEAR),
+  dir = "CM", filename = "QuinsamCampbell_10.08"
 )

@@ -49,28 +49,29 @@ cwt_rel <- left_join(
 ) %>%
   reshape2::acast(list("BROOD_YEAR"), fill = 0)
 
-# Total hatchery releases from Quisnam release sites, all release types
-rel_Quinsam.x <- readxl::read_excel(
+# Total hatchery releases from Campbell release sites, all release types
+rel_total.x <- readxl::read_excel(
   file.path("data", "Quinsam", "2025-07-23-Quinsam_Chinook_Releases_1970-2024.xlsx"),
   sheet = "Actual Release"
 )
 
-rel_Quinsam <- rel_Quinsam.x %>%
-  filter(str_starts(RELEASE_SITE_NAME, "Quinsam") |
-           str_starts(RELEASE_SITE_NAME, "Cold") |
-           str_starts(RELEASE_SITE_NAME, "Discovery") |
-           str_starts(RELEASE_SITE_NAME, "Orange")) %>%
+rel_total <- rel_total.x %>%
+  filter(str_starts(RELEASE_SITE_NAME, "Campbell") |
+           str_starts(RELEASE_SITE_NAME, "Elk") |
+           str_starts(RELEASE_SITE_NAME, "Second")) %>% # |
+           # str_starts(RELEASE_SITE_NAME, "Discovery") |
+           # str_starts(RELEASE_SITE_NAME, "Orange")) %>%
   summarise(n_rel = sum(TotalRelease), .by = c(BROOD_YEAR)) %>%
   arrange(BROOD_YEAR)
 
 # Crop to years with CWT data PLUS an extra year (to confirm)
 full_year <- data.frame(BROOD_YEAR= seq(min(cwt_rs$BROOD_YEAR),
                                         max(cwt_rs$BROOD_YEAR) + 1))
-rel_Quinsam <- left_join(full_year, rel_Quinsam, by = "BROOD_YEAR")
-rel_Quinsam$n_rel[is.na(rel_Quinsam$n_rel)] <- 0
+rel_total <- left_join(full_year, rel_total, by = "BROOD_YEAR")
+rel_total$n_rel[is.na(rel_total$n_rel)] <- 0
 
 # Escapement time-series
-pop <- "Quinsam" #Campbell, Adam, Nimpkish, Salmon
+pop <- "Campbell" #Campbell, Adam, Nimpkish, Salmon
 
 if(pop %in% c("Adam", "Nimpkish", "Salmon")) {
   esc <- readxl::read_excel(
@@ -138,7 +139,7 @@ d <- list(
   fec = fec_Quinsam,
   obsescape = esc$escapement,
   propwildspawn = rep(1, Ldyr),
-  hatchrelease = rel_Quinsam$n_rel, #rep(0, Ldyr + 1),
+  hatchrelease = rel_total$n_rel, #rep(0, Ldyr + 1),
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0.8,  # Walters and Korman (2024)
   cwtExp = 0.1 # Sarita used 1 #Walters and Korman (2024) used 0.1
@@ -170,9 +171,9 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5)
-saveRDS(samp, file = "CM/Quinsam_10.08.25.rds")
+saveRDS(samp, file = "CM/Campbell_CM_10.08.25.rds")
 
-samp <- readRDS(file = "CM/Quinsam_10.08.25.rds")
+samp <- readRDS(file = "CM/Campbell_CM_10.08.25.rds")
 report <- salmonMSE:::get_report(samp)
 d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
@@ -180,6 +181,6 @@ d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
-  rs_names = rs_names, name = "Quinsam", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "Quinsam_10.08"
+  rs_names = rs_names, name = "Campbell", year = unique(full_table$BROOD_YEAR),
+  dir = "CM", filename = "Campbell_10.08"
 )
