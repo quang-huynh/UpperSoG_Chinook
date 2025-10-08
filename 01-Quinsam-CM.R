@@ -55,6 +55,10 @@ rel_Quinsam.x <- readxl::read_excel(
   sheet = "Actual Release"
 )
 
+
+# Suggestion from Brendan Zoehner, SEP, to include all Quinsam sites and Cold
+# Creek. Discovery Pass and Orange Pt are seapen releases, likely impacting
+# Quinsam and Campbell (8 Oct 2025)
 rel_Quinsam <- rel_Quinsam.x %>%
   filter(str_starts(RELEASE_SITE_NAME, "Quinsam") |
            str_starts(RELEASE_SITE_NAME, "Cold") |

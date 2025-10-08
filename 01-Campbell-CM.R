@@ -55,6 +55,8 @@ rel_total.x <- readxl::read_excel(
   sheet = "Actual Release"
 )
 
+# Suggestion from Brendan Zoehner, SEP, to include all Campbell sites,
+# Elk R Chanel sites and Second Is (8 Oct 2025)
 rel_total <- rel_total.x %>%
   filter(str_starts(RELEASE_SITE_NAME, "Campbell") |
            str_starts(RELEASE_SITE_NAME, "Elk") |
