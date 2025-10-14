@@ -1,0 +1,15 @@
+﻿Parameter,Value,Source
+Number of ages,5,M. Clarke pers. com.
+Number of life-history groups,1,M. Clarke pers. com.
+Number of hatchery release groups,1,M. Clarke pers. com.
+Prior mean for vulnerability at age to the preterminal fishery,age 1: 0; age 2: 0.075; age 3: 0.9; age 4: 0.9; age 5: 1,Walters and Korman (2024)
+Prior mean for vulnerability at age to the terminal fishery,0,
+Time series of relative exploitation ,1,M. Clarke pers. com.
+Base maturity at age,age 1: 2.30; age 2: 0.36; age 3: 0.22; age 4: 0.11; age 5: 0.11,CTC 23-06 p.9; CWT Exploitation Rate analyses
+Survival rate of hatchery smolts shortly after release,0.5,Walters and Korman (2024)
+Fecundity,"age 1:0 ; age 2:  0; age 3: 800, age 4: 2000; age 5: 2500",Walters and Korman (2024)
+Proportion female,1,Assumed 1 as fecundity is per adult
+Relative spawning success of hatchery-origin fish,0.8,Withler et al. (2018)
+Initial preterminal fishing mortality rate for calculating equilbrium spawners at age,0.8,Walters and Korman (2024)- change to lower?
+Initial terminal fishing mortality rate for calculating equilbrium spawners at age,0,
+Expansion factor for CWT data ,0.1,Walters and Korman (2024)

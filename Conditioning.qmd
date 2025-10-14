@@ -1,0 +1,72 @@
+---
+title: "Conditioning Model for Upper Strait of Georgia"
+date: 10-14-2025
+format: 
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 2 # Adjust the depth of headings included in the TOC
+editor: visual
+# output: quatro::html_vignette
+#  vignette: >
+#   %\VignetteIndexEntry{Conditioning model for Upper Strait of Georgia}
+#   %\VignetteEngine{quarto::html}
+#   %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(dplyr)
+```
+
+## Introduction
+
+Status assessments for salmon typically use time series of spawners and recruitment to parameter spawner-recruitment models and associated benchmarks. While spawner data are often available at fine spatial scales relevant to assessments, recruitment data which are derived in part from aggregate catch data are often only available at much larger spatial scales. In some cases, data-rich indicator populations can be used to represent exploitation on neighbouring populations to estimate recruitment time-series. 
+
+[Walters and Korman (2024)](https://publications.gc.ca/site/eng/9.940685/publication.html) provide an approach for reconstructing exploitation and associated population dynamics for natural populations without recruitment time series, where (a) Coded Wire Tag (CWT) data from an indicator hatchery are available and (b) they are assumed to represent biological parameters and exploitation rates of the natural population. This approach is used to reconstruct the population dynamics for Upper Strait of Georgia Chinook salmon, using Quinsam River CWTs as a rough indicator for natural populations in this SMU. The conditioning model is described in detail in [salmonMSE documentation](https://docs.salmonmse.com/articles/conditioning.html).
+<!-- CH comment: Conditioning model is missing estimation of ma(base) base maturation rates by age, which is drawn from a slightly different prior distribution in salmonMSE compared with Walters and Korman (2024). Also, in the CM documentation the priors for the logit(vulnerabiltiy) parameters have mean of zero, but I think the code uses a prior mean of logit(vulnerablities assumed in Walters and Korman 2024).-->
+
+The conditioning model was applied to 5 populations in the Upper Straight of Georgia Chinook SMU: Quinsam River, Campbell River, Woss River (a component of Nimpkish River), Salmon River, and Adam River, and one combination of populations Quinsam/Campbell Rivers. The data are fit to time-series of escapement, total hatchery releases, and CWT releases and recaptures in catch and on the spawning grounds.
+
+## Escapement
+
+Escapement time-series are derived from NUSEDS, filtered by M. Clarke and T. Rachinski for high precision estimates. Only years that overlap with CWT time-series (2005-2023) are used in conditioning model.
+
+```{r escapement, echo = FALSE}
+
+knitr::include_graphics(here::here("figures", "total_escapement.png"))
+
+```
+
+
+## Hatchery releases
+
+For Quinsam River, hatchery releases included those from the following sites: Quinsam R, Quinsam R Up, Quinsam Lk, Quinsam Lk Up, Cold Cr, Discovery Pass, and Orange Pt.
+
+For Campbell River, hatchery releases included those from the following sites: Campbell Ch, Campbell Est, Campbell Transitn, Elk Falls Ch, and Second Is SI.  
+
+For Salmon River, hatchery releases included those from the following sites: Salmon R/JNST and Salmon R Up/JNST.
+
+For Woss River, hatchery releases included those from the following sites:: Woss R, Woss Lk, Nimpkish R and Nimpkish R Up.
+
+For Adams River, there are no hatchery releases.
+
+Plots to be added.
+
+## Input parameters
+
+The same input parameters are applied to all populations, unless specified. 
+
+```{r param-quinsam-cm, echo = FALSE}
+
+param_quinsam_cm <- read.csv("tables/quinsam-cm.csv") #%>%
+  # mutate(Name = paste0("$", Name, "$"))
+knitr::kable(param_quinsam_cm)
+
+```
+
+
+

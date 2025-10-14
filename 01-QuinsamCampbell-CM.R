@@ -49,7 +49,7 @@ cwt_rel <- left_join(
 ) %>%
   reshape2::acast(list("BROOD_YEAR"), fill = 0)
 
-# Total hatchery releases from Quinsam and Cambpell release sites, all release types
+# Total hatchery releases from Quinsam and Campbell release sites, all release types
 rel_Quinsam.x <- readxl::read_excel(
   file.path("data", "Quinsam", "2025-07-23-Quinsam_Chinook_Releases_1970-2024.xlsx"),
   sheet = "Actual Release"
@@ -137,7 +137,7 @@ d <- list(
   propwildspawn = rep(1, Ldyr),
   hatchrelease = rel_Quinsam$n_rel, #rep(0, Ldyr + 1),
   finitPT = 0.8, # Walters and Korman (2024)
-  finitT = 0.8,  # Walters and Korman (2024)
+  finitT = 0,
   cwtExp = 0.1 # Sarita used 1 #Walters and Korman (2024) used 0.1
 )
 

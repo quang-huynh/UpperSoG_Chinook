@@ -26,6 +26,19 @@ filtered_dfa <- dfa %>%
   mutate(IsUsed = ifelse(year < 2005, "no", "yes")) %>%
   select(year, escapement, pop, IsUsed)
 
+adam_dfa <- filtered_dfa %>% filter(pop == "Adam")
+full_years_adam <- data.frame(year = seq(min(adam_dfa$year), max(adam_dfa$year)))
+df_complete <- left_join(full_years_adam,adam_dfa)
+
+nimpkish_dfa <- filtered_dfa %>% filter(pop == "Nimpkish")
+full_years_nimpkish <- data.frame(year = seq(min(nimpkish_dfa$year), max(nimpkish_dfa$year)))
+df_complete_N <- left_join(full_years_nimpkish,nimpkish_dfa) %>%
+  mutate(IsUsed = ifelse(year < 2005, "no", "yes")) %>%
+
+# df_complete$pop <- "Nimpkish"
+# mutate(IsUsed = ifelse(year < 2005, "no", "yes")) %>%
+## Need to make years consecutive. For Nimpkish there are missing years .e.g, 2021,2022 that are not recorded
+## still needs to be done
 
 
 # Load the Excel file
@@ -49,7 +62,6 @@ filtered_dfb <- dfb %>%
   select(year, escapement, pop, IsUsed)
 
 filtered_df <- bind_rows(filtered_dfa, filtered_dfb)
-
   # right_join(
   #   full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
   #   by = c("year" = "BROOD_YEAR")
