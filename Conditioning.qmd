@@ -44,17 +44,22 @@ knitr::include_graphics(here::here("figures", "total_escapement.png"))
 
 ## Hatchery releases
 
-For Quinsam River, hatchery releases included those from the following sites: Quinsam R, Quinsam R Up, Quinsam Lk, Quinsam Lk Up, Cold Cr, Discovery Pass, and Orange Pt.
+For Quinsam River, hatchery releases include those from the following sites: Quinsam R, Quinsam R Up, Quinsam Lk, Quinsam Lk Up, Cold Cr, Discovery Pass, and Orange Pt.
 
-For Campbell River, hatchery releases included those from the following sites: Campbell Ch, Campbell Est, Campbell Transitn, Elk Falls Ch, and Second Is SI.  
+For Campbell River, hatchery releases include those from the following sites: Campbell Ch, Campbell Est, Campbell Transitn, Elk Falls Ch, and Second Is SI.  
 
-For Salmon River, hatchery releases included those from the following sites: Salmon R/JNST and Salmon R Up/JNST.
+For Salmon River, hatchery releases include those from the following sites: Salmon R/JNST and Salmon R Up/JNST.
 
-For Woss River, hatchery releases included those from the following sites: Woss R, Woss Lk, Nimpkish R and Nimpkish R Up.
+For Woss River, hatchery releases include those from the following sites: Woss R, Woss Lk, Nimpkish R and Nimpkish R Up.
 
 For Adams River, there are no hatchery releases.
 
-Plots to be added.
+```{r releases, echo = FALSE}
+
+knitr::include_graphics(here::here("figures", "total_hatchery_releases.png"))
+
+```
+
 
 ## Input parameters
 
