@@ -42,7 +42,11 @@ rel_Salmon <- hatchrel.2 %>%
   filter(str_starts(RELEASE_SITE_NAME, "Salmon R/JNST") |
            str_starts(RELEASE_SITE_NAME, "Salmon R Up/JNST")) %>%
   summarise(n_rel = sum(TotalRelease), .by = c(BROOD_YEAR)) %>%
-  arrange(BROOD_YEAR)%>%
+  arrange(BROOD_YEAR)
+
+full_years <- data.frame(BROOD_YEAR = seq(min(rel_Salmon$BROOD_YEAR),
+                                          max(rel_Salmon$BROOD_YEAR)))
+rel_Salmon <- full_years %>% left_join(rel_Salmon, by = "BROOD_YEAR") %>%
   mutate(pop = "Salmon")
 
 # Load hatchery releases for Nimpkish(Woss)
@@ -57,7 +61,11 @@ rel_Woss <- hatchrel.3 %>%
            str_starts(RELEASE_SITE_NAME, "Nimpkish R") |
            str_starts(RELEASE_SITE_NAME, "Nimpkish R Up")) %>%
   summarise(n_rel = sum(TotalRelease), .by = c(BROOD_YEAR)) %>%
-  arrange(BROOD_YEAR) %>%
+  arrange(BROOD_YEAR)
+
+full_years <- data.frame(BROOD_YEAR = seq(min(rel_Woss$BROOD_YEAR),
+                                          max(rel_Woss$BROOD_YEAR)))
+rel_Woss <- full_years %>% left_join(rel_Woss, by = "BROOD_YEAR") %>%
   mutate(pop = "Woss")
 
 hatchrel_combined <- bind_rows(rel_Quinsam, rel_Campbell, rel_Salmon, rel_Woss)
