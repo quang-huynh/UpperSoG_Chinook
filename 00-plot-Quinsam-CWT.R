@@ -8,37 +8,6 @@ rec <- readxl::read_excel(
 ) %>%
   mutate(is_catch = TotCatch > 0, is_esc = Escape > 0)
 
-#table(rec$is_catch, rec$is_esc)
-#filter(rec, is_catch & is_esc) %>% View()
-
-# Catch area names
-#cnames <- colnames(rec)
-#data.frame(
-#  Name = cnames[grepl("1|2|3", cnames)]
-#) %>%
-#  readr::write_csv(file = "data/Quinsam/Quinsam_fisheries.csv")
-
-
-# CWT recoveries
-#cwt <- summarise(rec,
-#                 n_catch = sum(TotCatch),
-#                 n_esc = sum(Escape),
-#                 .by = c(Age, BROOD_YEAR))
-#
-#g <- ggplot(cwt, aes(BROOD_YEAR, n_catch)) +
-#  facet_wrap(vars(Age), scales = "free_y") +
-#  geom_line() +
-#  geom_point() +
-#  expand_limits(y = 0)
-#g
-#
-#g <- ggplot(cwt, aes(BROOD_YEAR, n_esc)) +
-#  facet_wrap(vars(Age), scales = "free_y") +
-#  geom_line() +
-#  geom_point() +
-#  expand_limits(y = 0)
-#g
-
 # CWT by release strategy
 cwt_rs <- rec %>%
   mutate(RS = ifelse(RELEASE_STAGE_NAME == "Fed Fry", "Fed Fry", "Seapen/Smolt 0+")) %>%
