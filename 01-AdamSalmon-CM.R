@@ -156,7 +156,7 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5,
                   control=list(adapt_delta = 0.999, stepsize = 0.01,
-                               max_treedepth = 20))
+                                max_treedepth = 20))
 saveRDS(samp, file = "CM/AdamSalmon_10.23.25.rds")
 
 samp <- readRDS(file = "CM/AdamSalmon_10.23.25.rds")
