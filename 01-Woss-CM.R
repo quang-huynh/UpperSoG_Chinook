@@ -84,7 +84,8 @@ if(pop %in% c("Adam", "Nimpkish", "Salmon")) {
     right_join(
       full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
       by = c("year" = "BROOD_YEAR")
-    )
+    ) %>%
+    arrange(year)
 }
 
 
