@@ -49,15 +49,19 @@ cwt_rel <- left_join(
 ) %>%
   reshape2::acast(list("BROOD_YEAR"), fill = 0)
 
-# Total hatchery releases from Nimpkish/Woss release sites, all release types
+# No hatchery releases from Adam River
+
+# Total hatchery releases from Salmon and Woss release sites, all release types
 rel_total.x <- readxl::read_excel(
-  file.path("data", "Quinsam", "2025-07-23-NimpkishWoss_Chinook_Releases_1970-2024.xlsx"),
+  file.path("data", "Quinsam", "2025-10-08-SalmonRiverChinookReleases-AllYears.xlsx"),
   sheet = "Actual Release"
 )
 
 
 rel_total <- rel_total.x %>%
-  filter(str_starts(RELEASE_SITE_NAME, "Woss R") |
+  filter(str_starts(RELEASE_SITE_NAME, "Salmon R/JNST") |
+           str_starts(RELEASE_SITE_NAME, "Salmon R Up/JNST") |
+           str_starts(RELEASE_SITE_NAME, "Woss R") |
            str_starts(RELEASE_SITE_NAME, "Woss Lk") |
            str_starts(RELEASE_SITE_NAME, "Nimpkish R") |
            str_starts(RELEASE_SITE_NAME, "Nimpkish R Up")) %>%
@@ -70,23 +74,55 @@ full_year <- data.frame(BROOD_YEAR= seq(min(cwt_rs$BROOD_YEAR),
 rel_total <- left_join(full_year, rel_total, by = "BROOD_YEAR")
 rel_total$n_rel[is.na(rel_total$n_rel)] <- 0
 
-# Escapement time-series
-pop <- "Nimpkish" #Campbell, Adam, Nimpkish, Salmon
+# Escapement time-series, extracted separately for each populations to allow for
+# infilling of years with NAs where missing before right_joining with full table
+# of CWT years
 
-if(pop %in% c("Adam", "Nimpkish", "Salmon")) {
-  esc <- readxl::read_excel(
-    file.path("data", "SOG_N_Escapement-Salmon_Adam_Nimpkish.xlsx"),
-    sheet = "Data") %>%
-    filter(str_starts(Description, pop)) %>%
-    rename(year = "Analysis Year") %>%
-    rename(escapement="Max Estimate") %>%
-    select (year, escapement) %>%
-    right_join(
-      full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
-      by = c("year" = "BROOD_YEAR")
-    ) %>%
-    arrange(year)
-}
+esc_raw <- readxl::read_excel(
+  file.path("data", "SOG_N_Escapement-Salmon_Adam_Nimpkish.xlsx"),
+  sheet = "Data")
+
+esc_Adam <- esc_raw %>%
+  filter(str_starts(Description, "Adam") ) %>%
+  rename(year = "Analysis Year") %>%
+  rename(esc_pop="Max Estimate") %>%
+  summarise(esc = sum(esc_pop, na.rm=F),
+            .by= year) %>%
+  right_join(
+    full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
+    by = c("year" = "BROOD_YEAR")
+  ) %>%
+  mutate(pop = "Adam")
+
+
+esc_Salmon <- esc_raw %>%
+  filter(str_starts(Description, "Salmon") ) %>%
+  rename(year = "Analysis Year") %>%
+  rename(esc_pop="Max Estimate") %>%
+  summarise(esc = sum(esc_pop, na.rm=F),
+            .by= year) %>%
+  right_join(
+    full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
+    by = c("year" = "BROOD_YEAR")
+  ) %>%
+  mutate(pop = "Salmon")
+
+
+esc_Woss <- esc_raw %>%
+  filter(str_starts(Description, "Nimpkish") ) %>%
+  rename(year = "Analysis Year") %>%
+  rename(esc_pop="Max Estimate") %>%
+  summarise(esc = sum(esc_pop, na.rm=F),
+            .by= year) %>%
+  right_join(
+    full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
+    by = c("year" = "BROOD_YEAR")) %>%
+  arrange(year) %>%
+  mutate(pop = "Woss")
+
+
+esc <- bind_rows(esc_Adam, esc_Salmon, esc_Woss) %>%
+  summarize(escapement = sum(esc), .by = year)
 
 
 # Data object for model
@@ -150,16 +186,16 @@ map <- list()
 # Fix observation error of Sarita escapement (needed, otherwise model can't separate process from obs error)
 map$lnE_sd <- factor(NA)
 
-start <- list(log_so = log(3 * max(d$obsescape, na.rm=TRUE)))
+start <- list(log_so = log(3 * max(d$obsescape, na.rm=T)))
 
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5,
-                  control=list(adapt_delta = 0.999, stepsize = 0.01,
-                               max_treedepth = 20))
-saveRDS(samp, file = "CM/Woss_10.24.25.rds")
+                  control=list(adapt_delta = 0.995, stepsize = 0.01,
+                                max_treedepth = 20))
+saveRDS(samp, file = "CM/AdamSalmonWoss_10.27.25.rds")
 
-samp <- readRDS(file = "CM/Woss_10.24.25.rds")
+samp <- readRDS(file = "CM/AdamSalmonWoss_10.27.25.rds")
 report <- salmonMSE:::get_report(samp)
 d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
@@ -167,6 +203,6 @@ d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
-  rs_names = rs_names, name = "Woss", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "Woss_10.24"
+  rs_names = rs_names, name = "Adam/Salmon/Woss", year = unique(full_table$BROOD_YEAR),
+  dir = "CM", filename = "AdamSalmonWoss_10.27"
 )
