@@ -152,9 +152,9 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5)
-saveRDS(samp, file = "CM/Salmon_10.22.25.rds")
+saveRDS(samp, file = "CM/Salmon_10.31.25.rds")
 
-samp <- readRDS(file = "CM/Salmon_10.22.25.rds")
+samp <- readRDS(file = "CM/Salmon_10.31.25.rds")
 report <- salmonMSE:::get_report(samp)
 d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
@@ -163,5 +163,5 @@ rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
   rs_names = rs_names, name = "Salmon", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "Salmon_22.14"
+  dir = "CM", filename = "Salmon_31.14"
 )
