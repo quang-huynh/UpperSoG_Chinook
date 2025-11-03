@@ -22,7 +22,7 @@ rel_Quinsam <- hatchrel.1 %>%
 
 # Suggestion from Brendan Zoehner, SEP, to include all Campbell sites,
 # Elk R Chanel sites and Second Is (8 Oct 2025)
-rel_Campbell <- hatchrel %>%
+rel_Campbell <- hatchrel.1 %>%
   filter(str_starts(RELEASE_SITE_NAME, "Campbell") |
            str_starts(RELEASE_SITE_NAME, "Elk") |
            str_starts(RELEASE_SITE_NAME, "Second")) %>% # |
