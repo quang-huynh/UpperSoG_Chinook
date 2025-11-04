@@ -138,7 +138,7 @@ d <- list(
   hatchrelease = rel_Quinsam$n_rel, #rep(0, Ldyr + 1),
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0,
-  cwtExp =  10 # Sarita used 1 #Walters and Korman (2024) used 0.1 (typo, should be 10)
+  cwtExp =  0.1 # Sarita used 1 #Walters and Korman (2024) used 0.1 (typo, should be 10)
 )
 
 # Fix these parameters
@@ -182,3 +182,11 @@ salmonMSE::report_CM(
   rs_names = rs_names, name = "Quinsam/Campbell", year = unique(full_table$BROOD_YEAR),
   dir = "CM", filename = "QuinsamCampbell_11.03"
 )
+
+SMSY <- salmonMSE:::.CM_SMSY(report, d)
+Srep <- salmonMSE:::.CM_Srep(report, d)
+Sgen <- salmonMSE:::.CM_Sgen(report, d)
+
+range(Sgen/SMSY, na.rm = TRUE)
+range(SMSY/Srep, na.rm = TRUE)
+#If you remove the dot from the function name CM_SMSY instead of .CM_SMSY you will get the plotting function for the posterior
