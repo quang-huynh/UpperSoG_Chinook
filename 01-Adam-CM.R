@@ -106,7 +106,7 @@ d <- list(
   hatchrelease = rep(0, Ldyr + 1),
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0,  # Walters and Korman (2024)
-  cwtExp = 0.1 # Sarita used 1 #Walters and Korman (2024) used 0.1
+  cwtExp = 1 # Sarita used 1 #Walters and Korman (2024) used 0.1
 )
 
 # Fix these parameters
@@ -135,9 +135,9 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5)
-saveRDS(samp, file = "CM/Adam_10.22.25.rds")
+saveRDS(samp, file = "CM/Adam_11.03.25.rds")
 
-samp <- readRDS(file = "CM/Adam_10.22.25.rds")
+samp <- readRDS(file = "CM/Adam_11.03.25.rds")
 report <- salmonMSE:::get_report(samp)
 d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
@@ -146,5 +146,5 @@ rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
   rs_names = rs_names, name = "Adam", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "Adam_10.22"
+  dir = "CM", filename = "Adam_11.03"
 )
