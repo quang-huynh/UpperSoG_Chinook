@@ -113,13 +113,13 @@ esc <- readxl::read_excel(
 Ldyr <- dim(cwt_esc)[1]
 Nages <- 5#6
 
-#mat <- c(0, 0.1, 0.4, 0.95, 1) # from WCVI = c(0, 0.1, 0.4, 0.95, 1)
-mat <- c(0, 0.01, 0.1, 0.6, 1) # Need to tune this vector for initial abundance
+mat <- c(0, 0.1, 0.4, 0.95, 1) # from WCVI = c(0, 0.1, 0.4, 0.95, 1)
+#mat <- c(0, 0.01, 0.1, 0.6, 1) # Need to tune this vector for initial abundance
 vulPT <- c(0, 0.075, 0.9, 0.9, 1) #  from WCVI = c(0, 0.075, 0.9, 0.9, 1)
 vulT <- rep(0, Nages)
 
 M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1)) # CTC 23-06 p.9; CWT Exploitation Rate analyses
-M_CTC[1] <- 5 # Need to tune this value for initial abundance
+#M_CTC[1] <- 5 # Need to tune this value for initial abundance
 
 fec_Quinsam <- c(0, 0, 800, 2000, 2500) # Walters and Korman (2024) removing age6=3000; Filipovic et al. (in revision) RPA.
 # Eggs/total spawner (not female spawner)
@@ -145,7 +145,7 @@ d <- list(
   mobase = M_CTC,
   bmatt = mat,
   hatchsurv = 0.5, #Walters and Korman (2024); 1 used for WCVI Chinook
-  hatch_init = hatch_init,
+  #hatch_init = hatch_init,
   gamma = 0.8,
   ssum = 1, # ppn female. Fecundity is eggs/total spawner, so this is set to 1.
   fec = fec_Quinsam,
@@ -196,7 +196,7 @@ rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
   rs_names = rs_names, name = "Quinsam/Campbell", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "QuinsamCampbell_11.17"
+  dir = getwd(), filename = "QuinsamCampbell_11.17"
 )
 
 SMSY <- salmonMSE:::.CM_SMSY(report, d)
