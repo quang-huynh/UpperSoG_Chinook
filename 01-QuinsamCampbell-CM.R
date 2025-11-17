@@ -5,7 +5,7 @@ library(readxl)
 # Quinsam CWT recovery
 rec <- readxl::read_excel(
   file.path("data", "Quinsam", "2025-02-17-QuinsamChinook_Analyses_2005-2024.xlsx"),
-  sheet = "Expanded"
+  sheet = "Estimated"
 ) %>%
   mutate(is_catch = TotCatch > 0, is_esc = Escape > 0)
 
@@ -70,6 +70,14 @@ rel_Quinsam <- rel_Quinsam.x %>%
   summarise(n_rel = sum(TotalRelease), .by = c(BROOD_YEAR)) %>%
   arrange(BROOD_YEAR)
 
+# We start the model at brood year with CWT recoveries: min(cwt_rs$BROOD_YEAR) = 2005
+# However, hatchery releases begin prior to that, so we want to have a spool up with a hatchery population
+# going into 2005
+hatch_init <- rel_Quinsam %>%
+  filter(BROOD_YEAR %in% c(min(cwt_rs$BROOD_YEAR) - seq(5, 1))) %>%
+  pull(n_rel) %>%
+  mean()
+
 # Crop to years with CWT data PLUS an extra year (to confirm)
 full_year <- data.frame(BROOD_YEAR= seq(min(cwt_rs$BROOD_YEAR),
                                         max(cwt_rs$BROOD_YEAR) + 1))
@@ -105,14 +113,21 @@ esc <- readxl::read_excel(
 Ldyr <- dim(cwt_esc)[1]
 Nages <- 5#6
 
-mat <- c(0, 0.1, 0.4, 0.95, 1) # from WCVI = c(0, 0.1, 0.4, 0.95, 1)
+#mat <- c(0, 0.1, 0.4, 0.95, 1) # from WCVI = c(0, 0.1, 0.4, 0.95, 1)
+mat <- c(0, 0.01, 0.1, 0.6, 1) # Need to tune this vector for initial abundance
 vulPT <- c(0, 0.075, 0.9, 0.9, 1) #  from WCVI = c(0, 0.075, 0.9, 0.9, 1)
 vulT <- rep(0, Nages)
 
 M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1)) # CTC 23-06 p.9; CWT Exploitation Rate analyses
+M_CTC[1] <- 5 # Need to tune this value for initial abundance
 
 fec_Quinsam <- c(0, 0, 800, 2000, 2500) # Walters and Korman (2024) removing age6=3000; Filipovic et al. (in revision) RPA.
 # Eggs/total spawner (not female spawner)
+
+# CWT expansion factor, the reciprocal is the likelihood weighting factor
+# cwtExp of 0.1 implies weighting scalar of 10, cwtExp = 10 implies weighting scalar of 0.1
+# Since cwt_esc and cwt_catch are fully expanded values, adjust the inputs matrices by the reciprocal of cwtExp
+cwtExp <- 1
 
 d <- list(
   Nages = Nages,
@@ -120,8 +135,8 @@ d <- list(
   lht = 1,
   n_r = 1,
   cwtrelease = as.vector(cwt_rel),
-  cwtesc = array(round(cwt_esc), c(Ldyr, Nages, 1)),
-  cwtcatPT = array(round(cwt_catch), c(Ldyr, Nages, 1)),
+  cwtesc = array(round(cwt_esc/cwtExp), c(Ldyr, Nages, 1)),
+  cwtcatPT = array(round(cwt_catch/cwtExp), c(Ldyr, Nages, 1)),
   cwtcatT = NULL,
   bvulPT = vulPT,
   bvulT = vulT,
@@ -130,6 +145,7 @@ d <- list(
   mobase = M_CTC,
   bmatt = mat,
   hatchsurv = 0.5, #Walters and Korman (2024); 1 used for WCVI Chinook
+  hatch_init = hatch_init,
   gamma = 0.8,
   ssum = 1, # ppn female. Fecundity is eggs/total spawner, so this is set to 1.
   fec = fec_Quinsam,
@@ -138,7 +154,7 @@ d <- list(
   hatchrelease = rel_Quinsam$n_rel, #rep(0, Ldyr + 1),
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0,
-  cwtExp =  0.1 # Sarita used 1 #Walters and Korman (2024) used 0.1 (typo, should be 10)
+  cwtExp = cwtExp
 )
 
 # Fix these parameters
@@ -169,9 +185,9 @@ fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5,
                   control=list(adapt_delta = 0.999, stepsize = 0.01,
                                max_treedepth = 20))
-saveRDS(samp, file = "CM/QuinsamCampbell_11.03.25.rds")
+saveRDS(samp, file = "CM/QuinsamCampbell_11.17.25.rds")
 
-samp <- readRDS(file = "CM/QuinsamCampbell_11.03.25.rds")
+samp <- readRDS(file = "CM/QuinsamCampbell_11.17.25.rds")
 report <- salmonMSE:::get_report(samp)
 d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
@@ -180,7 +196,7 @@ rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
   rs_names = rs_names, name = "Quinsam/Campbell", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "QuinsamCampbell_11.03"
+  dir = "CM", filename = "QuinsamCampbell_11.17"
 )
 
 SMSY <- salmonMSE:::.CM_SMSY(report, d)
