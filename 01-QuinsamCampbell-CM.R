@@ -110,6 +110,15 @@ esc <- readxl::read_excel(
   ) %>%
   mutate(p_spawn = nat_spawners/escapement)
 
+# pHOS data (use Quinsam as it's 5-10x larger than Campbell)
+# 2024 value is much different compared to previous years!
+pHOS_df <- readxl::read_excel(
+  file.path("data", "2025-10-09-UpperSOGChinook-PNI.xlsx"),
+  sheet = "Quinsam"
+) %>%
+  select(`Brood Year`, `pHOS`) %>%
+  mutate(pHOS = as.numeric(pHOS)) %>%
+  right_join(full_year, by = c("Brood Year" = "BROOD_YEAR"))
 
 # Data object for model
 Ldyr <- dim(cwt_esc)[1]
@@ -154,6 +163,8 @@ d <- list(
   obsescape = esc$escapement,
   propwildspawn = esc$p_spawn, # This is the proportion of the natural spawners/return to river
   hatchrelease = rel_Quinsam$n_rel, #rep(0, Ldyr + 1),
+  obs_pHOS = pHOS_df$pHOS[1:Ldyr],
+  pHOS_sd = 0.1,
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0,
   cwtExp = cwtExp
@@ -184,13 +195,12 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
-samp <- sample_CM(fit, chains = 4, cores = 4, iter = 1000)
-                  , thin = 5,
+samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5,
                   control=list(adapt_delta = 0.999, stepsize = 0.01,
                                max_treedepth = 20))
-saveRDS(samp, file = "CM/QuinsamCampbell_11.17.25.rds")
+saveRDS(samp, file = "CM/QuinsamCampbell_11.20.25.rds")
 
-samp <- readRDS(file = "CM/QuinsamCampbell_11.17.25.rds")
+samp <- readRDS(file = "CM/QuinsamCampbell_11.20.25.rds")
 report <- salmonMSE:::get_report(samp)
 d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
@@ -199,7 +209,7 @@ rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
   rs_names = rs_names, name = "Quinsam/Campbell", year = unique(full_table$BROOD_YEAR),
-  dir = getwd(), filename = "QuinsamCampbell_11.17"
+  dir = "CM", filename = "QuinsamCampbell_11.20"
 )
 
 SMSY <- salmonMSE:::.CM_SMSY(report, d)
