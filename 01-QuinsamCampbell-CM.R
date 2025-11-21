@@ -100,13 +100,15 @@ esc <- readxl::read_excel(
   rename(esc.x = "Max Estimate") %>%
   summarise(
     escapement = sum(esc.x),
+    nat_spawners = sum(`Natural Spawners Adult`),
     .by = c(year)
   ) %>%
-  select (year, escapement) %>%
+  select (year, escapement, nat_spawners) %>%
   right_join(
     full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
     by = c("year" = "BROOD_YEAR")
-  )
+  ) %>%
+  mutate(p_spawn = nat_spawners/escapement)
 
 
 # Data object for model
@@ -150,7 +152,7 @@ d <- list(
   ssum = 1, # ppn female. Fecundity is eggs/total spawner, so this is set to 1.
   fec = fec_Quinsam,
   obsescape = esc$escapement,
-  propwildspawn = rep(1, Ldyr),
+  propwildspawn = esc$p_spawn, # This is the proportion of the natural spawners/return to river
   hatchrelease = rel_Quinsam$n_rel, #rep(0, Ldyr + 1),
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0,
@@ -182,7 +184,8 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
-samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5,
+samp <- sample_CM(fit, chains = 4, cores = 4, iter = 1000)
+                  , thin = 5,
                   control=list(adapt_delta = 0.999, stepsize = 0.01,
                                max_treedepth = 20))
 saveRDS(samp, file = "CM/QuinsamCampbell_11.17.25.rds")
