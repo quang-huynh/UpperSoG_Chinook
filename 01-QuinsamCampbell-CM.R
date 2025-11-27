@@ -1,6 +1,7 @@
 
 library(tidyverse)
 library(readxl)
+library(salmonMSE)
 
 # Quinsam CWT recovery
 rec <- readxl::read_excel(
@@ -124,13 +125,13 @@ pHOS_df <- readxl::read_excel(
 Ldyr <- dim(cwt_esc)[1]
 Nages <- 5#6
 
-mat <- c(0, 0.1, 0.4, 0.95, 1) # from WCVI = c(0, 0.1, 0.4, 0.95, 1)
-#mat <- c(0, 0.01, 0.1, 0.6, 1) # Need to tune this vector for initial abundance
+#mat <- c(0, 0.1, 0.4, 0.95, 1) # from WCVI = c(0, 0.1, 0.4, 0.95, 1)
+mat <- c(0, 0.01, 0.1, 0.6, 1) # Need to tune this vector for initial abundance
 vulPT <- c(0, 0.075, 0.9, 0.9, 1) #  from WCVI = c(0, 0.075, 0.9, 0.9, 1)
 vulT <- rep(0, Nages)
 
 M_CTC <- -log(1 - c(0.9, 0.3, 0.2, 0.1, 0.1)) # CTC 23-06 p.9; CWT Exploitation Rate analyses
-#M_CTC[1] <- 5 # Need to tune this value for initial abundance
+M_CTC[1] <- 5 # Need to tune this value for initial abundance
 
 fec_Quinsam <- c(0, 0, 800, 2000, 2500) # Walters and Korman (2024) removing age6=3000; Filipovic et al. (in revision) RPA.
 # Eggs/total spawner (not female spawner)
@@ -139,6 +140,8 @@ fec_Quinsam <- c(0, 0, 800, 2000, 2500) # Walters and Korman (2024) removing age
 # cwtExp of 0.1 implies weighting scalar of 10, cwtExp = 10 implies weighting scalar of 0.1
 # Since cwt_esc and cwt_catch are fully expanded values, adjust the inputs matrices by the reciprocal of cwtExp
 cwtExp <- 1
+
+#pHOS_df$pHOS[1:5] <- NA_real_ # Potentially remove first 5 years of pHOS observations to allow model spool-up
 
 d <- list(
   Nages = Nages,
@@ -156,15 +159,16 @@ d <- list(
   mobase = M_CTC,
   bmatt = mat,
   hatchsurv = 0.5, #Walters and Korman (2024); 1 used for WCVI Chinook
-  #hatch_init = hatch_init,
+  hatch_init = hatch_init,
+  NOinit = "SRR",
   gamma = 0.8,
   ssum = 1, # ppn female. Fecundity is eggs/total spawner, so this is set to 1.
   fec = fec_Quinsam,
   obsescape = esc$escapement,
   propwildspawn = esc$p_spawn, # This is the proportion of the natural spawners/return to river
   hatchrelease = rel_Quinsam$n_rel, #rep(0, Ldyr + 1),
-  obs_pHOS = pHOS_df$pHOS[1:Ldyr],
-  pHOS_sd = 0.1,
+  #obs_pHOS = pHOS_df$pHOS[1:Ldyr], # By brood year!
+  #pHOS_sd = 1.5,
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0,
   cwtExp = cwtExp
@@ -195,27 +199,59 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
-samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5,
-                  control=list(adapt_delta = 0.999, stepsize = 0.01,
+samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5, seed = 1, warmup = 6000,
+                  control=list(adapt_delta = 0.999,
+                               stepsize = 0.01,
                                max_treedepth = 20))
-saveRDS(samp, file = "CM/QuinsamCampbell_11.20.25.rds")
+saveRDS(samp, file = "CM/QuinsamCampbell_11.25.25.rds")
 
-samp <- readRDS(file = "CM/QuinsamCampbell_11.20.25.rds")
-report <- salmonMSE:::get_report(samp)
-d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
-#shinystan::launch_shinystan(samp)
+samp <- readRDS(file = "CM/QuinsamCampbell_11.25.25.rds")
 
-rs_names <- c("Smolt 0+")
-salmonMSE::report_CM(
-  samp,
-  rs_names = rs_names, name = "Quinsam/Campbell", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "QuinsamCampbell_11.20"
-)
+if (FALSE) { # Diagnostic figures do not run when sourcing file
 
-SMSY <- salmonMSE:::.CM_SMSY(report, d)
-Srep <- salmonMSE:::.CM_Srep(report, d)
-Sgen <- salmonMSE:::.CM_Sgen(report, d)
+  # Check fits quickly
+  report <- salmonMSE::get_report(samp)
+  d <- salmonMSE::get_CMdata(samp@.MISC$CMfit)
+  CM_fit_esc(report, d)
+  CM_fit_pHOS(report, d) # Figure only when fitted to pHOS observations, otherwise nothing
 
-range(Sgen/SMSY, na.rm = TRUE)
-range(SMSY/Srep, na.rm = TRUE)
-#If you remove the dot from the function name CM_SMSY instead of .CM_SMSY you will get the plotting function for the posterior
+  # Compare pHOS when not fitted
+  salmonMSE:::.CM_ts(report, year1 = pHOS_df$`Brood Year`[1], var = "pHOScensus_brood", ci = TRUE, ylab = "pHOScensus") +
+    geom_point(data = pHOS_df, aes(x = `Brood Year`, y = pHOS)) +
+    geom_line(data = pHOS_df, aes(x = `Brood Year`, y = pHOS), linetype = 3) +
+    labs(x = "Brood Year")
+
+  CM_F(report)
+  CM_surv2(report) # Survival to age 2
+
+  # Quickly check convergence
+  CM_trace(samp)
+  CM_pairs(samp, c("log_so", "log_cr"))
+
+  # Launch full Stan app, this function frees up console whilst using the Shiny app
+  launch_shinystan2 <- function(fit) {
+    require(future)
+    plan(multisession)
+    future(
+      shinystan::launch_shinystan(fit)
+    )
+  }
+  launch_shinystan2(samp)
+  #shinystan::launch_shinystan(samp)
+
+  rs_names <- c("Smolt 0+")
+  salmonMSE::report_CM(
+    samp,
+    rs_names = rs_names, name = "Quinsam/Campbell", year = unique(full_table$BROOD_YEAR),
+    dir = "CM", filename = "QuinsamCampbell_11.25"
+  )
+
+  SMSY <- salmonMSE:::.CM_SMSY(report, d)
+  Srep <- salmonMSE:::.CM_Srep(report, d)
+  Sgen <- salmonMSE:::.CM_Sgen(report, d)
+
+  range(Sgen/SMSY, na.rm = TRUE)
+  range(SMSY/Srep, na.rm = TRUE)
+  #If you remove the dot from the function name CM_SMSY instead of .CM_SMSY you will get the plotting function for the posterior
+
+}
