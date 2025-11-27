@@ -90,7 +90,7 @@ pop <- c("Quinsam", "Campbell")
 
 
 pop.cap <- str_to_upper(pop)
-esc <- readxl::read_excel(
+esc_all <- readxl::read_excel(
   file.path("data", "Quinsam", "fsar-sog-cn-cq-nuseds.xlsx"),
   sheet = "Data") %>%
   filter(StAD_Use == 1) %>%
@@ -104,7 +104,14 @@ esc <- readxl::read_excel(
     nat_spawners = sum(`Natural Spawners Adult`),
     .by = c(year)
   ) %>%
-  select (year, escapement, nat_spawners) %>%
+  select (year, escapement, nat_spawners)
+
+filter(esc_all, year %in% seq(2000, 2004, 1)) %>%
+  pull(nat_spawners) %>%
+  mean()
+plot(nat_spawners ~ year, esc_all, typ = "o")
+
+esc <- esc_all %>%
   right_join(
     full_table %>% filter(Age == 1) %>% select(BROOD_YEAR),
     by = c("year" = "BROOD_YEAR")
@@ -113,12 +120,19 @@ esc <- readxl::read_excel(
 
 # pHOS data (use Quinsam as it's 5-10x larger than Campbell)
 # 2024 value is much different compared to previous years!
-pHOS_df <- readxl::read_excel(
+pHOS_df_all <- readxl::read_excel(
   file.path("data", "2025-10-09-UpperSOGChinook-PNI.xlsx"),
   sheet = "Quinsam"
 ) %>%
   select(`Brood Year`, `pHOS`) %>%
-  mutate(pHOS = as.numeric(pHOS)) %>%
+  mutate(pHOS = as.numeric(pHOS))
+
+#filter(pHOS_df, `Brood Year` %in% seq(2000, 2004, 1)) %>%
+#  pull(pHOS) %>%
+#  mean()
+#plot(pHOS ~ `Brood Year`, pHOS_df, typ = "o")
+
+pHOS_df <- pHOS_df_all %>%
   right_join(full_year, by = c("Brood Year" = "BROOD_YEAR"))
 
 # Data object for model
@@ -159,8 +173,8 @@ d <- list(
   mobase = M_CTC,
   bmatt = mat,
   hatchsurv = 0.5, #Walters and Korman (2024); 1 used for WCVI Chinook
-  hatch_init = hatch_init,
-  NOinit = "SRR",
+  pHOS_init = 0.75,
+  spawn_init = 8400,
   gamma = 0.8,
   ssum = 1, # ppn female. Fecundity is eggs/total spawner, so this is set to 1.
   fec = fec_Quinsam,
@@ -168,7 +182,7 @@ d <- list(
   propwildspawn = esc$p_spawn, # This is the proportion of the natural spawners/return to river
   hatchrelease = rel_Quinsam$n_rel, #rep(0, Ldyr + 1),
   #obs_pHOS = pHOS_df$pHOS[1:Ldyr], # By brood year!
-  #pHOS_sd = 1.5,
+  #pHOS_sd = 0.5,
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0,
   cwtExp = cwtExp
@@ -199,13 +213,13 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
-samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5, seed = 1, warmup = 6000,
+samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5, seed = 1,
                   control=list(adapt_delta = 0.999,
                                stepsize = 0.01,
                                max_treedepth = 20))
-saveRDS(samp, file = "CM/QuinsamCampbell_11.25.25.rds")
+saveRDS(samp, file = "CM/QuinsamCampbell_11.27.25.rds")
 
-samp <- readRDS(file = "CM/QuinsamCampbell_11.25.25.rds")
+samp <- readRDS(file = "CM/QuinsamCampbell_11.27.25.rds")
 
 if (FALSE) { # Diagnostic figures do not run when sourcing file
 
@@ -215,14 +229,20 @@ if (FALSE) { # Diagnostic figures do not run when sourcing file
   CM_fit_esc(report, d)
   CM_fit_pHOS(report, d) # Figure only when fitted to pHOS observations, otherwise nothing
 
-  # Compare pHOS when not fitted
+  # Compare brood year pHOS when not fitted
   salmonMSE:::.CM_ts(report, year1 = pHOS_df$`Brood Year`[1], var = "pHOScensus_brood", ci = TRUE, ylab = "pHOScensus") +
     geom_point(data = pHOS_df, aes(x = `Brood Year`, y = pHOS)) +
     geom_line(data = pHOS_df, aes(x = `Brood Year`, y = pHOS), linetype = 3) +
     labs(x = "Brood Year")
 
+  salmonMSE:::.CM_ts(report, year1 = pHOS_df$`Brood Year`[1], var = "pHOScensus", ci = TRUE, ylab = "pHOS")
+
   CM_F(report)
   CM_surv2(report) # Survival to age 2
+
+  CM_maturity(report, d, brood = FALSE)
+  CM_M(report)
+  CM_SRR(report, year1 = pHOS_df$`Brood Year`[1])
 
   # Quickly check convergence
   CM_trace(samp)
@@ -243,7 +263,7 @@ if (FALSE) { # Diagnostic figures do not run when sourcing file
   salmonMSE::report_CM(
     samp,
     rs_names = rs_names, name = "Quinsam/Campbell", year = unique(full_table$BROOD_YEAR),
-    dir = "CM", filename = "QuinsamCampbell_11.25"
+    dir = "CM", filename = "QuinsamCampbell_11.27"
   )
 
   SMSY <- salmonMSE:::.CM_SMSY(report, d)
