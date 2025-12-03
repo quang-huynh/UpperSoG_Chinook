@@ -127,11 +127,11 @@ d <- list(
   bmatt = mat,
   hatchsurv = 0.5, #Walters and Korman (2024); 1 used for WCVI Chinook
   pHOS_init = 0.13,
-  spawn_init = 500/0.4,
+  spawn_init = 500/0.4, #Expanded to account for Woss:Nimpkish ratio, M. Clarke pers. comm. 21 Nov 2025
   gamma = 0.8,
   ssum = 1, # ppn female. Fecundity is eggs/total spawner, so this is set to 1.
   fec = fec_Quinsam,
-  obsescape = esc$escapement/0.4,
+  obsescape = esc$escapement/0.4,#Expanded to account for Woss:Nimpkish ratio, M. Clarke pers. comm. 21 Nov 2025
   propwildspawn = rep(1, Ldyr),
   hatchrelease = rel_total$n_rel, #rep(0, Ldyr + 1),
   finitPT = 0.8, # Walters and Korman (2024)
