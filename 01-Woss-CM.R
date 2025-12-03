@@ -5,7 +5,7 @@ library(readxl)
 # Quinsam CWT recovery
 rec <- readxl::read_excel(
   file.path("data", "Quinsam", "2025-02-17-QuinsamChinook_Analyses_2005-2024.xlsx"),
-  sheet = "Expanded"
+  sheet = "Estimated"
 ) %>%
   mutate(is_catch = TotCatch > 0, is_esc = Escape > 0)
 
@@ -14,9 +14,17 @@ rec <- readxl::read_excel(
 cwt_rs <- rec %>%
   filter(RELEASE_STAGE_NAME %in% c("Seapen 0+", "Smolt 0+")) %>%
   # mutate(RS = "Seapen/Smolt 0+") %>%
+  # Add CWT catches from PFMA 13 and 15 to escapement
+  mutate(TotEscSum = rowSums(select(., starts_with("3"),
+                                    starts_with('1PFMA 13'),
+                                    starts_with('1PFMA 15')), na.rm=T)) %>%
+  # Remove CWT catchs from PFMA 13 and 15 to catches
+  select(!starts_with('1PFMA 13')) %>%
+  select(!starts_with('1PFMA 15')) %>%
+  mutate(TotCatchSum = rowSums(select(., starts_with("1"), starts_with("2")), na.rm=T)) %>%
   summarise(
-    n_catch = sum(TotCatch),
-    n_esc = sum(Escape),
+    n_esc = sum(TotEscSum),
+    n_catch = sum(TotCatchSum),
     .by = c(Age, BROOD_YEAR)#, RS)
   )
 
@@ -118,15 +126,17 @@ d <- list(
   mobase = M_CTC,
   bmatt = mat,
   hatchsurv = 0.5, #Walters and Korman (2024); 1 used for WCVI Chinook
+  pHOS_init = 0.13,
+  spawn_init = 500/0.4,
   gamma = 0.8,
   ssum = 1, # ppn female. Fecundity is eggs/total spawner, so this is set to 1.
   fec = fec_Quinsam,
-  obsescape = esc$escapement,
+  obsescape = esc$escapement/0.4,
   propwildspawn = rep(1, Ldyr),
   hatchrelease = rel_total$n_rel, #rep(0, Ldyr + 1),
   finitPT = 0.8, # Walters and Korman (2024)
   finitT = 0,  # Walters and Korman (2024)
-  cwtExp = 0.1 # Sarita used 1 #Walters and Korman (2024) used 0.1
+  cwtExp = 1 # Sarita used 1 #Walters and Korman (2024) used 0.1
 )
 
 # Fix these parameters
@@ -157,9 +167,9 @@ fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5,
                   control=list(adapt_delta = 0.999, stepsize = 0.01,
                                max_treedepth = 20))
-saveRDS(samp, file = "CM/Woss_10.24.25.rds")
+saveRDS(samp, file = "CM/Woss_12.03.25.rds")
 
-samp <- readRDS(file = "CM/Woss_10.24.25.rds")
+samp <- readRDS(file = "CM/Woss_12.03.25.rds")
 report <- salmonMSE:::get_report(samp)
 d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
@@ -168,5 +178,5 @@ rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
   rs_names = rs_names, name = "Woss", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "Woss_10.24"
+  dir = "CM", filename = "Woss_12.03"
 )

@@ -5,7 +5,7 @@ library(readxl)
 # Quinsam CWT recovery
 rec <- readxl::read_excel(
   file.path("data", "Quinsam", "2025-02-17-QuinsamChinook_Analyses_2005-2024.xlsx"),
-  sheet = "Expanded"
+  sheet = "Estimated"
 ) %>%
   mutate(is_catch = TotCatch > 0, is_esc = Escape > 0)
 
@@ -98,6 +98,8 @@ d <- list(
   mobase = M_CTC,
   bmatt = mat,
   hatchsurv = 0.5, #Walters and Korman (2024); 1 used for WCVI Chinook
+  pHOS_init = 0,
+  spawn_init = 67,
   gamma = 0.8,
   ssum = 1, # ppn female. Fecundity is eggs/total spawner, so this is set to 1.
   fec = fec_Quinsam,
@@ -135,9 +137,9 @@ start <- list(log_so = log(3 * max(d$obsescape)))
 # Fit with sampling rate = 1
 fit <- fit_CM(d, start = start, map = map, do_fit = TRUE)
 samp <- sample_CM(fit, chains = 4, cores = 4, iter = 10000, thin = 5)
-saveRDS(samp, file = "CM/Adam_11.03.25.rds")
+saveRDS(samp, file = "CM/Adam_12.03.25.rds")
 
-samp <- readRDS(file = "CM/Adam_11.03.25.rds")
+samp <- readRDS(file = "CM/Adam_12.03.25.rds")
 report <- salmonMSE:::get_report(samp)
 d <- salmonMSE:::get_CMdata(samp@.MISC$CMfit)
 #shinystan::launch_shinystan(samp)
@@ -146,5 +148,5 @@ rs_names <- c("Smolt 0+")
 salmonMSE::report_CM(
   samp,
   rs_names = rs_names, name = "Adam", year = unique(full_table$BROOD_YEAR),
-  dir = "CM", filename = "Adam_11.03"
+  dir = "CM", filename = "Adam_12.03"
 )
